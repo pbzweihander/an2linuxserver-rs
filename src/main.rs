@@ -2,6 +2,7 @@ use anyhow::Result;
 
 mod cert;
 mod config;
+mod protocol;
 
 fn main() -> Result<()> {
     let config_manager = config::ConfigManager::try_default()?;
