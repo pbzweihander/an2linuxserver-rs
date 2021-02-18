@@ -1,6 +1,6 @@
 use anyhow::Result;
 
-mod cert;
+mod tls;
 mod config;
 mod protocol;
 
