@@ -177,16 +177,20 @@ impl ConfigManager {
         Ok(())
     }
 
-    pub fn ensure_certificate_and_rsa_private_key_valid(&self) -> Result<()> {
+    pub fn ensure_certificate_and_rsa_private_key_exists(&self) -> Result<()> {
         let certificate_path = self.certificate_path();
         let rsa_private_key_path = self.rsa_private_key_path();
-        if !certificate_path.is_file() || !rsa_private_key_path.is_file() {
-            crate::cert::generate_certificate_and_rsa_private_key_to_path(
-                &certificate_path,
-                &rsa_private_key_path,
-            )?;
-        } else { // test if valid certificate / private key
-             // TODO: Validate certificate and private key
+        if certificate_path.is_file() {
+            return Err(format_err!(
+                "No certificate file found in {}",
+                certificate_path.to_string_lossy()
+            ));
+        }
+        if rsa_private_key_path.is_file() {
+            return Err(format_err!(
+                "No RSA private key file found in {}",
+                certificate_path.to_string_lossy()
+            ));
         }
         Ok(())
     }
