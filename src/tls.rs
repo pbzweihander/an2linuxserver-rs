@@ -3,7 +3,13 @@ use std::fs;
 use std::io::BufReader;
 use std::path::Path;
 
-fn load_certs(filename: &Path) -> Result<Vec<rustls::Certificate>> {
+#[derive(Clone)]
+pub struct TlsInfo {
+    pub certs: Vec<rustls::Certificate>,
+    pub config: rustls::ServerConfig,
+}
+
+pub fn load_certs(filename: &Path) -> Result<Vec<rustls::Certificate>> {
     let certfile = fs::File::open(filename)?;
     let mut reader = BufReader::new(certfile);
     let certs = rustls_pemfile::certs(&mut reader)?
@@ -13,7 +19,7 @@ fn load_certs(filename: &Path) -> Result<Vec<rustls::Certificate>> {
     Ok(certs)
 }
 
-fn load_private_key(filename: &Path) -> Result<rustls::PrivateKey> {
+pub fn load_private_key(filename: &Path) -> Result<rustls::PrivateKey> {
     let keyfile = fs::File::open(filename)?;
     let mut reader = BufReader::new(keyfile);
 
@@ -29,14 +35,14 @@ fn load_private_key(filename: &Path) -> Result<rustls::PrivateKey> {
 }
 
 pub fn make_tls_server_config(
-    certificate_path: &Path,
-    rsa_private_key_path: &Path,
-) -> Result<rustls::ServerConfig> {
-    let certs = load_certs(certificate_path)?;
-    let privkey = load_private_key(rsa_private_key_path)?;
-
+    certs: Vec<rustls::Certificate>,
+    privkey: rustls::PrivateKey,
+) -> Result<TlsInfo> {
     let mut config = rustls::ServerConfig::new(rustls::NoClientAuth::new());
-    config.set_single_cert(certs, privkey)?;
+    config.set_single_cert(certs.clone(), privkey)?;
 
-    Ok(config)
+    Ok(TlsInfo{
+        certs,
+        config,
+    })
 }
