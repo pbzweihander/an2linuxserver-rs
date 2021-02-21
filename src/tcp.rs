@@ -121,7 +121,10 @@ pub fn notification_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInf
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
-                handle_notification_connection(stream, &tls_info)?;
+                if let Err(e) = handle_notification_connection(stream, &tls_info) {
+                    // TODO: log to stderr
+                    println!("error on notification handler: {:?}", e);
+                }
             }
             Err(_) => {
                 // TODO: log to stderr and continue
