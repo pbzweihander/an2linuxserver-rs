@@ -46,3 +46,19 @@ impl Into<u8> for PairingResponse {
         }
     }
 }
+
+pub struct NotificationFlag {
+    pub include_title: bool,
+    pub include_message: bool,
+    pub include_icon: bool,
+}
+
+impl NotificationFlag {
+    pub fn from(flags: u8) -> Self {
+        NotificationFlag {
+            include_title: flags & FLAG_INCLUDE_TITLE != 0,
+            include_message: flags & FLAG_INCLUDE_MESSAGE != 0,
+            include_icon: flags & FLAG_INCLUDE_ICON != 0,
+        }
+    }
+}

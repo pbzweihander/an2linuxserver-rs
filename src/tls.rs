@@ -35,15 +35,35 @@ pub fn load_private_key(filename: &Path) -> Result<rustls::PrivateKey> {
     Err(anyhow::anyhow!("No RSA private keys found in {}", filename.to_string_lossy()))
 }
 
-pub fn make_tls_server_config(
-    certs: Vec<rustls::Certificate>,
+pub fn make_tls_server_config_no_client_auth(
+    server_certs: Vec<rustls::Certificate>,
     privkey: rustls::PrivateKey,
 ) -> Result<TlsInfo> {
     let mut config = rustls::ServerConfig::new(rustls::NoClientAuth::new());
-    config.set_single_cert(certs.clone(), privkey)?;
+    config.set_single_cert(server_certs.clone(), privkey)?;
 
     Ok(TlsInfo{
-        certs,
+        certs: server_certs,
+        config,
+    })
+}
+
+pub fn make_tls_server_config_with_auth(
+    server_certs: Vec<rustls::Certificate>,
+    privkey: rustls::PrivateKey,
+    client_certs: Vec<rustls::Certificate>,
+) -> Result<TlsInfo> {
+    let mut root_cert_store = rustls::RootCertStore::empty();
+    for cert in client_certs {
+        root_cert_store.add(&cert)?;
+    }
+    root_cert_store.add(&server_certs[0])?;
+    let verifier = rustls::AllowAnyAuthenticatedClient::new(root_cert_store);
+    let mut config = rustls::ServerConfig::new(verifier);
+    config.set_single_cert(server_certs.clone(), privkey)?;
+
+    Ok(TlsInfo{
+        certs: server_certs,
         config,
     })
 }

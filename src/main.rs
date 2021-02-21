@@ -27,18 +27,20 @@ fn main() -> Result<()> {
     } else if certs.len() > 1 {
         // TODO: show warning
     }
-    // TODO: print certificate fingerprint
-    let tls_config = tls::make_tls_server_config(certs, privkey)?;
 
     // TODO: Implement core
+    // TODO: signal handling
     if config.tcp.enabled {
         match opt.cmd {
             Some(opt::Subcommand::Pair) => {
                 // pairing request
+                let tls_config = tls::make_tls_server_config_no_client_auth(certs, privkey)?;
                 tcp::pairing_tcp_handler(&config_manager, tls_config)?;
             },
             None => {
-
+                let authorized_certs = config_manager.parse_authorized_cert()?.get_all_der_certs();
+                let tls_config = tls::make_tls_server_config_with_auth(certs, privkey, authorized_certs)?;
+                tcp::notification_tcp_handler(&config_manager, tls_config)?;
             },
         }
     }

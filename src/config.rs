@@ -245,12 +245,12 @@ impl ConfigManager {
             .map(|x| format!("{:02X}", x))
             .collect::<Vec<String>>()
             .join(":");
-        let digest_hex_formatted = format!("SHA256:{}", digest_hex_formatted);
         let authorized_certs = self.parse_authorized_cert()?;
         if authorized_certs.certs.get(&digest_hex_formatted).is_some() {
             bail!("client certificate already exists")
         }
 
+        let digest_hex_formatted = format!("SHA256:{}", digest_hex_formatted);
         let base64_str = base64::encode(cert_der);
         let mut f = fs::OpenOptions::new()
             .write(true)
@@ -265,7 +265,7 @@ impl ConfigManager {
 // data structure that holds `authorized_certs` file content
 pub struct AuthorizedCerts {
     // Fingerprint -> Certificate map
-    pub certs: HashMap<String, String>
+    certs: HashMap<String, Vec<u8>>
 }
 
 impl AuthorizedCerts {
@@ -279,16 +279,36 @@ impl AuthorizedCerts {
         let mut f = fs::File::open(path)?;
         let mut buf = String::new();
         f.read_to_string(&mut buf)?;
-        let mut hashmap: HashMap<String, String> = HashMap::new();
+        let mut hashmap: HashMap<String, Vec<u8>> = HashMap::new();
         for line in buf.lines() {
             let s = line.split_whitespace().collect::<Vec<&str>>();
             if s.len() != 2 {
                 continue;
             }
-            hashmap.insert(s[0].to_owned(), s[1].to_owned());
+            let fingerprint = {
+                let splitted = s[0].splitn(2, ":").collect::<Vec<&str>>();
+                if splitted.len() < 2 {
+                    ""
+                } else {
+                    splitted[0]
+                }
+            };
+            if fingerprint == "" {
+                continue;
+            }
+            let cert_der = base64::decode(s[1]).unwrap_or(vec![]);
+            if cert_der.is_empty() {
+                continue;
+            }
+            // println!("der is {:?}", cert_der);
+            hashmap.insert(fingerprint.to_owned(), cert_der);
         }
         Ok(AuthorizedCerts {
             certs: hashmap,
         })
+    }
+
+    pub fn get_all_der_certs(&self) -> Vec<rustls::Certificate> {
+        self.certs.values().map(|cert| rustls::Certificate(cert.clone())).collect()
     }
 }
