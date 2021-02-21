@@ -1,4 +1,4 @@
-use anyhow::{format_err, Error, Result};
+use anyhow::{format_err, Error, Result, bail};
 use configparser::ini::Ini;
 use regex::Regex;
 use std::fs;
@@ -37,12 +37,26 @@ pub struct TcpServerConfig {
     pub port: u64,
 }
 
+// reimplementation of Ini::getboolcoerce, because of "on"/"off" string handling, which is valid
+// for boolean coercion in Python configparser.
+fn get_bool_coerce(ini: &Ini, section: &str, key: &str) -> Result<Option<bool>> {
+    let bool_str = ini.get(section, key);
+    if let None = bool_str {
+        return Ok(None);
+    }
+    let bool_str = &bool_str.unwrap().to_lowercase()[..];
+    if ["true", "yes", "t", "y", "1", "on"].contains(&bool_str) {
+        Ok(Some(true))
+    } else if ["false", "no", "f", "n", "0", "off"].contains(&bool_str) {
+        Ok(Some(false))
+    } else {
+        bail!("Unable to parse value into bool at {}:{}", section, key);
+    }
+}
+
 impl TcpServerConfig {
     fn from_ini(ini: &Ini) -> Result<Self> {
-        let enabled = ini
-            .getboolcoerce("tcp", "tcp_server")
-            .map_err(Error::msg)?
-            .unwrap_or(true);
+        let enabled = get_bool_coerce(ini, "tcp", "tcp_server")?.unwrap_or(true);
         let port = ini
             .getuint("tcp", "tcp_port")
             .map_err(Error::msg)?
@@ -59,14 +73,8 @@ pub struct BluetoothConfig {
 
 impl BluetoothConfig {
     fn from_ini(ini: &Ini) -> Result<Self> {
-        let enabled = ini
-            .getboolcoerce("bluetooth", "bluetooth_server")
-            .map_err(Error::msg)?
-            .unwrap_or(false);
-        let support_kitkat = ini
-            .getboolcoerce("bluetooth", "bluetooth_support_kitkat")
-            .map_err(Error::msg)?
-            .unwrap_or(false);
+        let enabled = get_bool_coerce(ini, "bluetooth", "bluetooth_server")?.unwrap_or(false);
+        let support_kitkat = get_bool_coerce(ini, "bluetooth", "bluetooth_support_kitkat")?.unwrap_or(false);
         Ok(Self {
             enabled,
             support_kitkat,
