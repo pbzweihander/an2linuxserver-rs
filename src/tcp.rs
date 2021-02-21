@@ -205,6 +205,7 @@ fn handle_notification_request(mut stream: TcpStream, tls_info: &TlsInfo) -> Res
         icon_bytes = buf;
     }
 
+    // TODO: send desktop notification
     println!("title: {}", title);
     println!("message: {}", message);
     println!("icon_bytes: {:?}", icon_bytes);
