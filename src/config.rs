@@ -237,7 +237,7 @@ impl ConfigManager {
         AuthorizedCerts::from_file(authorized_certs_path)
     }
 
-    pub fn add_authorized_cert(&self, cert_der: &AsRef<[u8]>) -> Result<()> {
+    pub fn add_authorized_cert(&self, cert_der: &dyn AsRef<[u8]>) -> Result<()> {
         let cert_der = cert_der.as_ref();
         let digest = ring::digest::digest(&ring::digest::SHA256, cert_der);
         let digest_hex_formatted =
@@ -256,7 +256,7 @@ impl ConfigManager {
             .write(true)
             .append(true)
             .open(self.authorized_certs_path())?;
-        let s = format!("{} {}", digest_hex_formatted, base64_str);
+        let s = format!("{} {}\n", digest_hex_formatted, base64_str);
         f.write(&s.into_bytes())?;
         Ok(())
     }
