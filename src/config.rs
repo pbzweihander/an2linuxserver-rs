@@ -203,13 +203,13 @@ impl ConfigManager {
     pub fn ensure_certificate_and_rsa_private_key_exists(&self) -> Result<()> {
         let certificate_path = self.certificate_path();
         let rsa_private_key_path = self.rsa_private_key_path();
-        if certificate_path.is_file() {
+        if !certificate_path.is_file() {
             return Err(format_err!(
                 "No certificate file found in {}",
                 certificate_path.to_string_lossy()
             ));
         }
-        if rsa_private_key_path.is_file() {
+        if !rsa_private_key_path.is_file() {
             return Err(format_err!(
                 "No RSA private key file found in {}",
                 certificate_path.to_string_lossy()
