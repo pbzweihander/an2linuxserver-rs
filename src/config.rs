@@ -300,7 +300,6 @@ impl AuthorizedCerts {
             if cert_der.is_empty() {
                 continue;
             }
-            // println!("der is {:?}", cert_der);
             hashmap.insert(fingerprint.to_owned(), cert_der);
         }
         Ok(AuthorizedCerts {
