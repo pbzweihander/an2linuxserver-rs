@@ -104,7 +104,8 @@ fn handle_pair_request(mut stream: TcpStream, config_manager: &ConfigManager, tl
 
     tls_stream.write_all(&mut [PairingResponse::Accept.into()])?;
 
-    // TODO: add authorized_certs
+    // add to authorized_certs
+    config_manager.add_authorized_cert(&client_cert)?;
 
     Ok(())
 }

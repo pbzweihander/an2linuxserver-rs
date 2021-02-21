@@ -2,7 +2,9 @@ use anyhow::{format_err, Error, Result, bail};
 use configparser::ini::Ini;
 use regex::Regex;
 use std::fs;
+use std::io::*;
 use std::path::{Path, PathBuf};
+use std::collections::HashMap;
 
 const DEFAULT_CONFIG_FILE_CONTENT: &str = include_str!("default_config.ini");
 
@@ -224,5 +226,69 @@ impl ConfigManager {
         } else {
             None
         }
+    }
+
+    pub fn parse_authorized_cert(&self) -> Result<AuthorizedCerts> {
+        let authorized_certs_path = self.authorized_certs_path();
+        if !authorized_certs_path.is_file() {
+            fs::File::create(authorized_certs_path)?;
+            return Ok(AuthorizedCerts::new());
+        }
+        AuthorizedCerts::from_file(authorized_certs_path)
+    }
+
+    pub fn add_authorized_cert(&self, cert_der: &AsRef<[u8]>) -> Result<()> {
+        let cert_der = cert_der.as_ref();
+        let digest = ring::digest::digest(&ring::digest::SHA256, cert_der);
+        let digest_hex_formatted =
+            digest.as_ref().iter()
+            .map(|x| format!("{:02X}", x))
+            .collect::<Vec<String>>()
+            .join(":");
+        let digest_hex_formatted = format!("SHA256:{}", digest_hex_formatted);
+        let authorized_certs = self.parse_authorized_cert()?;
+        if authorized_certs.certs.get(&digest_hex_formatted).is_some() {
+            bail!("client certificate already exists")
+        }
+
+        let base64_str = base64::encode(cert_der);
+        let mut f = fs::OpenOptions::new()
+            .write(true)
+            .append(true)
+            .open(self.authorized_certs_path())?;
+        let s = format!("{} {}", digest_hex_formatted, base64_str);
+        f.write(&s.into_bytes())?;
+        Ok(())
+    }
+}
+
+// data structure that holds `authorized_certs` file content
+struct AuthorizedCerts {
+    // Fingerprint -> Certificate map
+    pub certs: HashMap<String, String>
+}
+
+impl AuthorizedCerts {
+    fn new() -> AuthorizedCerts {
+        AuthorizedCerts {
+            certs: HashMap::new(),
+        }
+    }
+
+    fn from_file(path: PathBuf) -> Result<AuthorizedCerts> {
+        let mut f = fs::File::open(path)?;
+        let mut buf = String::new();
+        f.read_to_string(&mut buf)?;
+        let mut hashmap: HashMap<String, String> = HashMap::new();
+        for line in buf.lines() {
+            let s = line.split_whitespace().collect::<Vec<&str>>();
+            if s.len() != 2 {
+                continue;
+            }
+            hashmap.insert(s[0].to_owned(), s[1].to_owned());
+        }
+        Ok(AuthorizedCerts {
+            certs: hashmap,
+        })
     }
 }
