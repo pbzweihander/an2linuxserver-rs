@@ -35,13 +35,12 @@ fn main() -> Result<()> {
         match opt.cmd {
             Some(opt::Subcommand::Pair) => {
                 // pairing request
-
+                tcp::pairing_tcp_handler(&config_manager, tls_config)?;
             },
             None => {
 
             },
         }
-        tcp::pairing_tcp_handler(&config_manager, tls_config)?;
     }
 
     Ok(())

@@ -27,6 +27,7 @@ pub fn load_private_key(filename: &Path) -> Result<rustls::PrivateKey> {
         match rustls_pemfile::read_one(&mut reader)? {
             Some(rustls_pemfile::Item::RSAKey(key)) => return Ok(rustls::PrivateKey(key)),
             None => break,
+            Some(rustls_pemfile::Item::PKCS8Key(key)) => return Ok(rustls::PrivateKey(key)),
             _ => {},
         }
     }

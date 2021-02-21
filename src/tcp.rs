@@ -12,12 +12,14 @@ use super::config::ConfigManager;
 use super::tls::TlsInfo;
 
 pub fn pairing_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInfo) -> Result<()> {
-    let listener = TcpListener::bind("127.0.0.1:10101")?;
+    let listener = TcpListener::bind("0.0.0.0:10101")?;
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
                 // TODO: make this function call asynchronous
                 handle_pairing_connection(stream, config_manager, &tls_info)?;
+                println!("successfully paired");
+                return Ok(());
             }
             Err(_) => {
                 // TODO: log to stderr and continue
@@ -79,8 +81,7 @@ fn handle_pair_request(mut stream: TcpStream, config_manager: &ConfigManager, tl
     ]);
 
     // TODO: pretty-print sha256 digest
-    println!("{:x?}", digest.as_ref());
-
+    println!("{:02X?}", digest.as_ref());
 
     // TODO: asynchronously handle pairing response
     println!("Waiting for client pairing response...");
@@ -96,7 +97,9 @@ fn handle_pair_request(mut stream: TcpStream, config_manager: &ConfigManager, tl
 
     let mut q = String::new();
     print!("Enter \"yes\" to accept pairing: ");
+    std::io::stdout().flush()?;
     std::io::stdin().read_line(&mut q)?;
+    let q = q.trim();
     if q != "yes" {
         tls_stream.write_all(&mut [PairingResponse::Deny.into()])?;
         bail!("user denied pairing")

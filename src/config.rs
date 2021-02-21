@@ -157,7 +157,7 @@ impl ConfigManager {
     pub fn try_default(load_config: bool) -> Result<Self> {
         let config_home_dir =
             dirs::config_dir().ok_or_else(|| format_err!("Unsupported platform"))?;
-        let config_dir = config_home_dir.join("an2linux");
+        let config_dir = config_home_dir.join("an2linux_rs");
         let mut config_manager = Self { config_dir, config: None };
         config_manager.ensure_config_dir_exists()?;
         config_manager.ensure_certificate_and_rsa_private_key_exists()?;
@@ -263,7 +263,7 @@ impl ConfigManager {
 }
 
 // data structure that holds `authorized_certs` file content
-struct AuthorizedCerts {
+pub struct AuthorizedCerts {
     // Fingerprint -> Certificate map
     pub certs: HashMap<String, String>
 }
