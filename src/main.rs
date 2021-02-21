@@ -10,10 +10,10 @@ mod opt;
 fn main() -> Result<()> {
     // parse command-line arguments
     let opt = opt::Opt::from_args();
-    let config_manager = config::ConfigManager::try_default()?;
+    let config_manager = config::ConfigManager::try_default(true)?;
     config_manager.ensure_config_dir_exists()?;
     config_manager.ensure_certificate_and_rsa_private_key_exists()?;
-    let config = config_manager.get_or_create_config()?;
+    let config = config_manager.get_config().unwrap();
 
     if !config.tcp.enabled && !config.bluetooth.enabled {
         panic!("Neither TCP nor Bluetooth is enabled");
@@ -41,7 +41,7 @@ fn main() -> Result<()> {
 
             },
         }
-        tcp::pairing_tcp_handler(config, tls_config)?;
+        tcp::pairing_tcp_handler(&config_manager, tls_config)?;
     }
 
     Ok(())

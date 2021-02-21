@@ -140,14 +140,29 @@ impl NotificationConfig {
 #[derive(Debug, Clone)]
 pub struct ConfigManager {
     config_dir: PathBuf,
+    config: Option<Config>,
 }
 
 impl ConfigManager {
-    pub fn try_default() -> Result<Self> {
+    pub fn try_default(load_config: bool) -> Result<Self> {
         let config_home_dir =
             dirs::config_dir().ok_or_else(|| format_err!("Unsupported platform"))?;
         let config_dir = config_home_dir.join("an2linux");
-        Ok(Self { config_dir })
+        let mut config_manager = Self { config_dir, config: None };
+        config_manager.ensure_config_dir_exists()?;
+        config_manager.ensure_certificate_and_rsa_private_key_exists()?;
+
+        if load_config {
+            let config_file_path = config_manager.config_file_path();
+            if !config_file_path.is_file() {
+                Config::create_default_config_to_path(&config_file_path)?;
+            }
+            let config_content = fs::read_to_string(&config_file_path)?;
+            let mut ini = Ini::new_cs();
+            ini.read(config_content).map_err(Error::msg)?;
+            config_manager.config = Some(Config::from_ini(&ini)?);
+        }
+        Ok(config_manager)
     }
 
     pub fn config_file_path(&self) -> PathBuf {
@@ -195,14 +210,11 @@ impl ConfigManager {
         Ok(())
     }
 
-    pub fn get_or_create_config(&self) -> Result<Config> {
-        let config_file_path = self.config_file_path();
-        if !config_file_path.is_file() {
-            Config::create_default_config_to_path(&config_file_path)?;
+    pub fn get_config(&self) -> Option<&Config> {
+        if let Some(config) = &self.config {
+            Some(&config)
+        } else {
+            None
         }
-        let config_content = fs::read_to_string(&config_file_path)?;
-        let mut ini = Ini::new_cs();
-        ini.read(config_content).map_err(Error::msg)?;
-        Config::from_ini(&ini)
     }
 }

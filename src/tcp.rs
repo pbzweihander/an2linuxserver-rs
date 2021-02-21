@@ -8,16 +8,16 @@ use rustls;
 use ring;
 
 use super::protocol::{ConnType, PairingResponse};
-use super::config::Config;
+use super::config::ConfigManager;
 use super::tls::TlsInfo;
 
-pub fn pairing_tcp_handler(config: Config, tls_info: TlsInfo) -> Result<()> {
+pub fn pairing_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInfo) -> Result<()> {
     let listener = TcpListener::bind("127.0.0.1:10101")?;
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
                 // TODO: make this function call asynchronous
-                handle_pairing_connection(stream, &tls_info);
+                handle_pairing_connection(stream, config_manager, &tls_info);
             }
             Err(_) => {
                 // TODO: log to stderr and continue
@@ -27,7 +27,7 @@ pub fn pairing_tcp_handler(config: Config, tls_info: TlsInfo) -> Result<()> {
     Ok(())
 }
 
-fn handle_pairing_connection(mut stream: TcpStream, tls_info: &TlsInfo) -> Result<()> {
+fn handle_pairing_connection(mut stream: TcpStream, config_manager: &ConfigManager, tls_info: &TlsInfo) -> Result<()> {
     let mut buf = [0; 1];
     stream.set_read_timeout(Some(Duration::from_secs(10)))?;
     stream.read_exact(&mut buf)?;
@@ -35,7 +35,7 @@ fn handle_pairing_connection(mut stream: TcpStream, tls_info: &TlsInfo) -> Resul
     if let Some(conn_type) = ConnType::from(buf[0]) {
         match conn_type {
             ConnType::PairRequest => {
-                handle_pair_request(stream, tls_info);
+                handle_pair_request(stream, config_manager, tls_info);
             }
             _ => {
                 bail!("invalid connection type")
@@ -50,7 +50,7 @@ fn handle_pairing_connection(mut stream: TcpStream, tls_info: &TlsInfo) -> Resul
 
 const CERT_SIZE_LIMIT: u32 = 10000;
 
-fn handle_pair_request(mut stream: TcpStream, tls_info: &TlsInfo) -> Result<()> {
+fn handle_pair_request(mut stream: TcpStream, config_manager: &ConfigManager, tls_info: &TlsInfo) -> Result<()> {
     let mut session = rustls::ServerSession::new(&Arc::new(tls_info.config.clone()));
     let mut tls_stream = rustls::Stream::new(&mut session, &mut stream);
 
