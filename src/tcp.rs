@@ -17,7 +17,7 @@ pub fn pairing_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInfo) ->
         match stream {
             Ok(stream) => {
                 // TODO: make this function call asynchronous
-                handle_pairing_connection(stream, config_manager, &tls_info);
+                handle_pairing_connection(stream, config_manager, &tls_info)?;
             }
             Err(_) => {
                 // TODO: log to stderr and continue
@@ -35,7 +35,7 @@ fn handle_pairing_connection(mut stream: TcpStream, config_manager: &ConfigManag
     if let Some(conn_type) = ConnType::from(buf[0]) {
         match conn_type {
             ConnType::PairRequest => {
-                handle_pair_request(stream, config_manager, tls_info);
+                handle_pair_request(stream, config_manager, tls_info)?;
             }
             _ => {
                 bail!("invalid connection type")
