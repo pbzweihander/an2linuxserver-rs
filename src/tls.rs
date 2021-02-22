@@ -41,32 +41,48 @@ pub fn load_private_key(filename: &Path) -> Result<rustls::PrivateKey> {
     Err(anyhow::anyhow!("No RSA private keys found in {}", filename.to_string_lossy()))
 }
 
-pub fn make_tls_server_config_no_client_auth(
+pub struct TlsInfoBuilder {
     server_certs: Vec<rustls::Certificate>,
     privkey: rustls::PrivateKey,
-) -> Result<TlsInfo> {
-    let mut config = rustls::ServerConfig::new(rustls::NoClientAuth::new());
-    config.set_single_cert(server_certs.clone(), privkey)?;
-
-    Ok(TlsInfo{
-        certs: server_certs,
-        config,
-    })
+    client_certs: Option<Vec<rustls::Certificate>>,
 }
 
-pub fn make_tls_server_config_with_auth(
-    server_certs: Vec<rustls::Certificate>,
-    privkey: rustls::PrivateKey,
-    client_certs: Vec<rustls::Certificate>,
-) -> Result<TlsInfo> {
-    let custom_cert_verifier = Arc::new(CustomClientCertVerifier::new(client_certs)?);
-    let mut config = rustls::ServerConfig::new(custom_cert_verifier);
-    config.set_single_cert(server_certs.clone(), privkey)?;
+impl TlsInfoBuilder {
+    pub fn new(server_certs: Vec<rustls::Certificate>, privkey: rustls::PrivateKey) -> Self {
+        Self {
+            server_certs,
+            privkey,
+            client_certs: None,
+        }
+    }
 
-    Ok(TlsInfo{
-        certs: server_certs,
-        config,
-    })
+    pub fn with_client_auth(self, client_certs: Vec<rustls::Certificate>) -> Self {
+        Self {
+            client_certs: Some(client_certs),
+            ..self
+        }
+    }
+
+    pub fn build_tls_info(self) -> Result<TlsInfo> {
+        if let Some(client_certs) = self.client_certs {
+            let custom_cert_verifier = Arc::new(CustomClientCertVerifier::new(client_certs)?);
+            let mut config = rustls::ServerConfig::new(custom_cert_verifier);
+            config.set_single_cert(self.server_certs.clone(), self.privkey)?;
+
+            Ok(TlsInfo{
+                certs: self.server_certs,
+                config,
+            })
+        } else {
+            let mut config = rustls::ServerConfig::new(rustls::NoClientAuth::new());
+            config.set_single_cert(self.server_certs.clone(), self.privkey)?;
+
+            Ok(TlsInfo{
+                certs: self.server_certs,
+                config,
+            })
+        }
+    }
 }
 
 pub struct CustomClientCertVerifier {

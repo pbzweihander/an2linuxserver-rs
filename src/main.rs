@@ -30,16 +30,22 @@ fn main() -> Result<()> {
 
     // TODO: Implement core
     // TODO: signal handling
+    let tls_info = tls::TlsInfoBuilder::new(certs, privkey);
     if config.tcp.enabled {
         match opt.cmd {
             Some(opt::Subcommand::Pair) => {
                 // pairing request
-                let tls_config = tls::make_tls_server_config_no_client_auth(certs, privkey)?;
+                let tls_config = tls_info.build_tls_info()?;
                 tcp::pairing_tcp_handler(&config_manager, tls_config)?;
             },
             None => {
-                let authorized_certs = config_manager.parse_authorized_cert()?.get_all_der_certs();
-                let tls_config = tls::make_tls_server_config_with_auth(certs, privkey, authorized_certs)?;
+                // notification daemon mode
+                let authorized_certs = config_manager
+                    .parse_authorized_cert()?
+                    .get_all_der_certs();
+                let tls_config = tls_info
+                    .with_client_auth(authorized_certs)
+                    .build_tls_info()?;
                 tcp::notification_tcp_handler(&config_manager, tls_config)?;
             },
         }
