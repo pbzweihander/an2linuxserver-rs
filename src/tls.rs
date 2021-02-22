@@ -167,14 +167,12 @@ impl ClientCertVerifier for CustomClientCertVerifier {
         if scheme.is_none() {
             return Err(TLSError::General(String::from("cannot figure out signature scheme")));
         }
-        println!("{:?}", scheme);
         // maybe we should use `check_tls12_signature`, but tlsv1.2 does not permit RSA_PSS.
         // nevertheless, an2linux is using RSA_PSS_SHA256 algorithm. so we have to
         // set restriction to None.
         let res = cert.subject_public_key_info()
             .check_signature(scheme.unwrap(), message, &dss.sig.0, x509_signature::Restrictions::None);
         if res.is_err() {
-            println!("{:?}", res);
             return Err(TLSError::General(String::from("failed to verify signature")));
         }
         Ok(HandshakeSignatureValid::assertion())
