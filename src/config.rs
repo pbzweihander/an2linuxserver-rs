@@ -234,7 +234,10 @@ impl ConfigManager {
             fs::File::create(authorized_certs_path)?;
             return Ok(AuthorizedCerts::new());
         }
-        AuthorizedCerts::from_path(&authorized_certs_path)
+        let mut f = fs::File::open(authorized_certs_path)?;
+        let mut buf = String::new();
+        f.read_to_string(&mut buf)?;
+        AuthorizedCerts::from_str(&buf)
     }
 
     pub fn add_authorized_cert(&self, cert_der: &dyn AsRef<[u8]>) -> Result<()> {
@@ -275,13 +278,10 @@ impl AuthorizedCerts {
         }
     }
 
-    fn from_path(path: &dyn AsRef<Path>) -> Result<Self> {
-        let path = path.as_ref();
-        let mut f = fs::File::open(path)?;
-        let mut buf = String::new();
-        f.read_to_string(&mut buf)?;
+    fn from_str(content: &dyn AsRef<str>) -> Result<Self> {
+        let content = content.as_ref();
         let mut hashmap: HashMap<String, Vec<u8>> = HashMap::new();
-        for line in buf.lines() {
+        for line in content.lines() {
             let s = line.split_whitespace().collect::<Vec<&str>>();
             if s.len() != 2 {
                 continue;
