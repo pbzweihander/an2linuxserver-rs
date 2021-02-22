@@ -1,7 +1,64 @@
-pub const PAIR_REQUEST: u8 = b'\x00';
-pub const NOTIF_CONN: u8 = b'\x01';
-pub const DENY_PAIRING: u8 = b'\x02';
-pub const ACCEPT_PAIRING: u8 = b'\x03';
-pub const FLAG_INCLUDE_TITLE: u8 = 1;
-pub const FLAG_INCLUDE_MESSAGE: u8 = 2;
-pub const FLAG_INCLUDE_ICON: u8 = 4;
+const PAIR_REQUEST: u8 = b'\x00';
+const NOTIF_CONN: u8 = b'\x01';
+
+const DENY_PAIRING: u8 = b'\x02';
+const ACCEPT_PAIRING: u8 = b'\x03';
+
+const FLAG_INCLUDE_TITLE: u8 = 1;
+const FLAG_INCLUDE_MESSAGE: u8 = 2;
+const FLAG_INCLUDE_ICON: u8 = 4;
+
+pub enum ConnType {
+    PairRequest,
+    NotifConn,
+}
+
+impl ConnType {
+    pub fn from(b: u8) -> Option<Self> {
+        match b {
+            PAIR_REQUEST => Some(ConnType::PairRequest),
+            NOTIF_CONN => Some(ConnType::NotifConn),
+            _ => None,
+        }
+    }
+}
+
+pub enum PairingResponse {
+    Accept,
+    Deny,
+}
+
+impl PairingResponse {
+    pub fn from(b: u8) -> Option<Self> {
+        match b {
+            DENY_PAIRING => Some(PairingResponse::Deny),
+            ACCEPT_PAIRING => Some(PairingResponse::Accept),
+            _ => None,
+        }
+    }
+}
+
+impl Into<u8> for PairingResponse {
+    fn into(self) -> u8 {
+        match self {
+            PairingResponse::Deny => DENY_PAIRING,
+            PairingResponse::Accept => ACCEPT_PAIRING,
+        }
+    }
+}
+
+pub struct NotificationFlag {
+    pub include_title: bool,
+    pub include_message: bool,
+    pub include_icon: bool,
+}
+
+impl NotificationFlag {
+    pub fn from(flags: u8) -> Self {
+        NotificationFlag {
+            include_title: flags & FLAG_INCLUDE_TITLE != 0,
+            include_message: flags & FLAG_INCLUDE_MESSAGE != 0,
+            include_icon: flags & FLAG_INCLUDE_ICON != 0,
+        }
+    }
+}
