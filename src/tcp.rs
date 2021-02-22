@@ -166,17 +166,16 @@ fn handle_notification_request(mut stream: TcpStream, tls_info: &TlsInfo) -> Res
     tls_stream.read_exact(&mut buf)?;
     let flag = NotificationFlag::from(u8::from_be_bytes(buf));
 
-    let mut title = String::new();
-    let mut message = String::new();
-    let mut icon_bytes: Vec<u8> = vec![];
-
-    if flag.include_title || flag.include_message {
+    let (title, message) = if flag.include_title || flag.include_message {
         let mut buf = [0; 4];
         tls_stream.read_exact(&mut buf)?;
         let size = u32::from_be_bytes(buf);
         if size > PAYLOAD_LIMIT {
             bail!("payload size is too large: {} > {}(limit)", size, PAYLOAD_LIMIT);
         }
+
+        let title: String;
+        let message: String;
 
         let mut buf = vec![0; size as usize];
         tls_stream.read_exact(&mut buf)?;
@@ -184,16 +183,23 @@ fn handle_notification_request(mut stream: TcpStream, tls_info: &TlsInfo) -> Res
         let splitted = payload.split("|||").collect::<Vec<&str>>();
         if flag.include_title {
             title = splitted[0].to_owned();
+        } else {
+            title = String::new();
         }
         if flag.include_message {
             if splitted.len() < 2 {
                 bail!("flag says paylod includes message but actually not")
             }
             message = splitted[1].to_owned();
+        } else {
+            message = String::new();
         }
-    }
+        (title, message)
+    } else {
+        (String::new(), String::new())
+    };
 
-    if flag.include_icon {
+    let icon_bytes = if flag.include_icon {
         let mut buf = [0; 4];
         tls_stream.read_exact(&mut buf)?;
         let size = u32::from_be_bytes(buf);
@@ -202,8 +208,10 @@ fn handle_notification_request(mut stream: TcpStream, tls_info: &TlsInfo) -> Res
         }
         let mut buf = vec![0; size as usize];
         tls_stream.read_exact(&mut buf)?;
-        icon_bytes = buf;
-    }
+        buf
+    } else {
+        vec![]
+    };
 
     // TODO: send desktop notification
     println!("title: {}", title);
