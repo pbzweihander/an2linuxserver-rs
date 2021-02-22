@@ -234,7 +234,7 @@ impl ConfigManager {
             fs::File::create(authorized_certs_path)?;
             return Ok(AuthorizedCerts::new());
         }
-        AuthorizedCerts::from_file(authorized_certs_path)
+        AuthorizedCerts::from_path(&authorized_certs_path)
     }
 
     pub fn add_authorized_cert(&self, cert_der: &dyn AsRef<[u8]>) -> Result<()> {
@@ -269,13 +269,14 @@ pub struct AuthorizedCerts {
 }
 
 impl AuthorizedCerts {
-    fn new() -> AuthorizedCerts {
-        AuthorizedCerts {
+    fn new() -> Self {
+        Self {
             certs: HashMap::new(),
         }
     }
 
-    fn from_file(path: PathBuf) -> Result<AuthorizedCerts> {
+    fn from_path(path: &dyn AsRef<Path>) -> Result<Self> {
+        let path = path.as_ref();
         let mut f = fs::File::open(path)?;
         let mut buf = String::new();
         f.read_to_string(&mut buf)?;
@@ -302,7 +303,7 @@ impl AuthorizedCerts {
             }
             hashmap.insert(fingerprint.to_owned(), cert_der);
         }
-        Ok(AuthorizedCerts {
+        Ok(Self {
             certs: hashmap,
         })
     }
