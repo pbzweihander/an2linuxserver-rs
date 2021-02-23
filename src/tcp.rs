@@ -6,6 +6,8 @@ use std::sync::Arc;
 use anyhow::{Result, bail};
 use rustls;
 use ring;
+use notify_rust::{Notification, Image};
+use image;
 
 use super::protocol::{ConnType, PairingResponse, NotificationFlag};
 use super::config::ConfigManager;
@@ -213,10 +215,13 @@ fn handle_notification_request(mut stream: TcpStream, tls_info: &TlsInfo) -> Res
         vec![]
     };
 
-    // TODO: send desktop notification
-    println!("title: {}", title);
-    println!("message: {}", message);
-    println!("icon_bytes: {:?}", icon_bytes);
+    // TODO: filter message
+    let image = image::load_from_memory(&icon_bytes)?.into_rgba8();
+    Notification::new()
+        .summary(&title)
+        .body(&message)
+        .image_data(Image::from_rgba(image.width() as i32, image.height() as i32, image.into_raw())?)
+        .show()?;
 
     Ok(())
 }
