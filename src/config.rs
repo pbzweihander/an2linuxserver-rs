@@ -191,6 +191,8 @@ impl ConfigManager {
         self.config_dir.join("authorized_certs")
     }
 
+    // TODO
+    #[allow(dead_code)]
     pub fn dhparam_path(&self) -> PathBuf {
         self.config_dir.join("dhparam.pem")
     }
