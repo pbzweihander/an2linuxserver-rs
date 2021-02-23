@@ -30,11 +30,13 @@ dependencies = [
  "configparser",
  "dirs 3.0.1",
  "image",
+ "log",
  "notify-rust",
  "regex",
  "ring",
  "rustls",
  "rustls-pemfile",
+ "simple_logger",
  "structopt",
  "webpki",
  "x509-signature",
@@ -214,6 +216,17 @@ name = "color_quant"
 version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b"
+
+[[package]]
+name = "colored"
+version = "1.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4ffc801dacf156c5854b9df4f425a626539c3a6ef7893cc0c5084a23f0b6c59"
+dependencies = [
+ "atty",
+ "lazy_static",
+ "winapi",
+]
 
 [[package]]
 name = "concurrent-queue"
@@ -1081,6 +1094,19 @@ dependencies = [
  "proc-macro2",
  "quote 1.0.9",
  "syn 1.0.60",
+]
+
+[[package]]
+name = "simple_logger"
+version = "1.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd57f17c093ead1d4a1499dc9acaafdd71240908d64775465543b8d9a9f1d198"
+dependencies = [
+ "atty",
+ "chrono",
+ "colored",
+ "log",
+ "winapi",
 ]
 
 [[package]]

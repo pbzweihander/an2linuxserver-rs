@@ -8,6 +8,10 @@ mod tls;
 mod utils;
 
 fn main() -> Result<()> {
+    simple_logger::SimpleLogger::new()
+        .with_level(log::LevelFilter::Info)
+        .init()?;
+
     // parse command-line arguments
     let opt = opt::Opt::from_args();
     let config_manager = config::ConfigManager::new();

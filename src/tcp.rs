@@ -136,17 +136,14 @@ pub fn notification_tcp_handler(config: &Config, tls_info: TlsInfo) -> Result<()
     let bind_addr = SocketAddr::from(([0, 0, 0, 0], port as u16));
     let listener = TcpListener::bind(bind_addr)?;
     for stream in listener.incoming() {
-        // FIXME
-        #[allow(clippy::single_match)]
         match stream {
             Ok(stream) => {
                 if let Err(e) = handle_notification_connection(stream, &tls_info) {
-                    // TODO: log to stderr
-                    println!("error on notification handler: {:?}", e);
+                    log::error!("error on notification handler: {:?}", e);
                 }
             }
-            Err(_) => {
-                // TODO: log to stderr and continue
+            Err(e) => {
+                log::error!("error handling incoming stream: {:?}", e);
             }
         }
     }

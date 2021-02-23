@@ -22,10 +22,12 @@ base64 = "0.13.0"
 configparser = { git = "https://github.com/mexili/configparser-rs", rev = "af5b3db4d080fcbc709f2597a22fefb2218dce64" }
 dirs = "3.0.1"
 image = "0.23.13"
+log = "0.4.14"
 regex = "1.4.3"
 ring = "0.16.20"
 rustls-pemfile = "0.2.0"
 rustls = { version = "0.19.0", features = ["dangerous_configuration"] }
+simple_logger = "1.11.0"
 structopt = "0.3.21"
 webpki = "0.21.4"
 x509-signature = "0.5.0"
