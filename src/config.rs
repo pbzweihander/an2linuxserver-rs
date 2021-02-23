@@ -262,7 +262,7 @@ impl ConfigManager {
             .append(true)
             .open(self.authorized_certs_path())?;
         let s = format!("{} {}\n", digest_hex_formatted, base64_str);
-        f.write(&s.into_bytes())?;
+        f.write_all(&s.into_bytes())?;
         Ok(())
     }
 }
