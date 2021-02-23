@@ -4,10 +4,7 @@ use std::time::Duration;
 use std::sync::Arc;
 
 use anyhow::{Result, bail};
-use rustls;
-use ring;
 use notify_rust::{Notification, Image};
-use image;
 
 use super::protocol::{ConnType, PairingResponse, NotificationFlag};
 use super::config::ConfigManager;
