@@ -1,13 +1,15 @@
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
+use rustls::internal::msgs::handshake::DigitallySignedStruct;
+use rustls::SignatureScheme as RScheme;
+use rustls::{
+    ClientCertVerified, ClientCertVerifier, DistinguishedNames, HandshakeSignatureValid, TLSError,
+};
 use std::fs;
 use std::io::BufReader;
 use std::path::Path;
 use std::sync::Arc;
-use rustls::{ClientCertVerifier, DistinguishedNames, HandshakeSignatureValid, ClientCertVerified, TLSError};
-use rustls::internal::msgs::handshake::DigitallySignedStruct;
-use rustls::SignatureScheme as RScheme;
-use x509_signature::SignatureScheme as XScheme;
 use x509_signature::parse_certificate;
+use x509_signature::SignatureScheme as XScheme;
 
 #[derive(Clone)]
 pub struct TlsInfo {
@@ -34,11 +36,14 @@ pub fn load_private_key(filename: &Path) -> Result<rustls::PrivateKey> {
             Some(rustls_pemfile::Item::RSAKey(key)) => return Ok(rustls::PrivateKey(key)),
             None => break,
             Some(rustls_pemfile::Item::PKCS8Key(key)) => return Ok(rustls::PrivateKey(key)),
-            _ => {},
+            _ => {}
         }
     }
 
-    Err(anyhow::anyhow!("No RSA private keys found in {}", filename.to_string_lossy()))
+    Err(anyhow::anyhow!(
+        "No RSA private keys found in {}",
+        filename.to_string_lossy()
+    ))
 }
 
 pub struct TlsInfoBuilder {
@@ -69,7 +74,7 @@ impl TlsInfoBuilder {
             let mut config = rustls::ServerConfig::new(custom_cert_verifier);
             config.set_single_cert(self.server_certs.clone(), self.privkey)?;
 
-            Ok(TlsInfo{
+            Ok(TlsInfo {
                 certs: self.server_certs,
                 config,
             })
@@ -77,7 +82,7 @@ impl TlsInfoBuilder {
             let mut config = rustls::ServerConfig::new(rustls::NoClientAuth::new());
             config.set_single_cert(self.server_certs.clone(), self.privkey)?;
 
-            Ok(TlsInfo{
+            Ok(TlsInfo {
                 certs: self.server_certs,
                 config,
             })
@@ -121,7 +126,10 @@ impl CustomClientCertVerifier {
 // warning: this is probably not safe method to verify!
 impl ClientCertVerifier for CustomClientCertVerifier {
     // provides parsed subject names of allowed_certs
-    fn client_auth_root_subjects(&self, _sni: Option<&webpki::DNSName>) -> Option<DistinguishedNames> {
+    fn client_auth_root_subjects(
+        &self,
+        _sni: Option<&webpki::DNSName>,
+    ) -> Option<DistinguishedNames> {
         Some(self.subject_names.clone())
     }
 
@@ -134,18 +142,21 @@ impl ClientCertVerifier for CustomClientCertVerifier {
         for presented_cert in presented_certs {
             for allowed_cert in &self.allowed_certs {
                 if allowed_cert.0 == presented_cert.0 {
-                    return Ok(ClientCertVerified::assertion())
+                    return Ok(ClientCertVerified::assertion());
                 }
             }
         }
-        Err(TLSError::General(String::from("cannot find appropriate client cert")))
+        Err(TLSError::General(String::from(
+            "cannot find appropriate client cert",
+        )))
     }
 
     fn verify_tls12_signature(
         &self,
         message: &[u8],
         cert: &rustls::Certificate,
-        dss: &DigitallySignedStruct) -> Result<HandshakeSignatureValid, TLSError> {
+        dss: &DigitallySignedStruct,
+    ) -> Result<HandshakeSignatureValid, TLSError> {
         let cert = parse_certificate(&cert.0);
         if cert.is_err() {
             return Err(TLSError::General(String::from("cannot parse certificate")));
@@ -162,18 +173,26 @@ impl ClientCertVerifier for CustomClientCertVerifier {
             RScheme::ECDSA_NISTP384_SHA384 => Some(XScheme::ECDSA_NISTP384_SHA384),
             RScheme::ED25519 => Some(XScheme::ED25519),
             RScheme::ED448 => Some(XScheme::ED448),
-            _  => None,
+            _ => None,
         };
         if scheme.is_none() {
-            return Err(TLSError::General(String::from("cannot figure out signature scheme")));
+            return Err(TLSError::General(String::from(
+                "cannot figure out signature scheme",
+            )));
         }
         // maybe we should use `check_tls12_signature`.
         // but, an2linux is using RSA_PSS_SHA256 algorithm, which is not supported in tlsv1.2.
         // so we have to set restriction to None.
-        let res = cert.subject_public_key_info()
-            .check_signature(scheme.unwrap(), message, &dss.sig.0, x509_signature::Restrictions::None);
+        let res = cert.subject_public_key_info().check_signature(
+            scheme.unwrap(),
+            message,
+            &dss.sig.0,
+            x509_signature::Restrictions::None,
+        );
         if res.is_err() {
-            return Err(TLSError::General(String::from("failed to verify signature")));
+            return Err(TLSError::General(String::from(
+                "failed to verify signature",
+            )));
         }
         Ok(HandshakeSignatureValid::assertion())
     }

@@ -1,16 +1,16 @@
 use std::io::prelude::*;
-use std::net::{TcpListener, TcpStream, SocketAddr};
-use std::time::Duration;
+use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::sync::Arc;
+use std::time::Duration;
 
-use anyhow::{Result, bail};
-use rustls;
-use ring;
-use notify_rust::{Notification, Image};
+use anyhow::{bail, Result};
 use image;
+use notify_rust::{Image, Notification};
+use ring;
+use rustls;
 
-use super::protocol::{ConnType, PairingResponse, NotificationFlag};
 use super::config::ConfigManager;
+use super::protocol::{ConnType, NotificationFlag, PairingResponse};
 use super::tls::TlsInfo;
 
 pub fn pairing_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInfo) -> Result<()> {
@@ -32,7 +32,11 @@ pub fn pairing_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInfo) ->
     Ok(())
 }
 
-fn handle_pairing_connection(mut stream: TcpStream, config_manager: &ConfigManager, tls_info: &TlsInfo) -> Result<()> {
+fn handle_pairing_connection(
+    mut stream: TcpStream,
+    config_manager: &ConfigManager,
+    tls_info: &TlsInfo,
+) -> Result<()> {
     let mut buf = [0; 1];
     stream.set_read_timeout(Some(Duration::from_secs(10)))?;
     stream.read_exact(&mut buf)?;
@@ -55,7 +59,11 @@ fn handle_pairing_connection(mut stream: TcpStream, config_manager: &ConfigManag
 
 const CERT_SIZE_LIMIT: u32 = 10000;
 
-fn handle_pair_request(mut stream: TcpStream, config_manager: &ConfigManager, tls_info: &TlsInfo) -> Result<()> {
+fn handle_pair_request(
+    mut stream: TcpStream,
+    config_manager: &ConfigManager,
+    tls_info: &TlsInfo,
+) -> Result<()> {
     let mut session = rustls::ServerSession::new(&Arc::new(tls_info.config.clone()));
     let mut tls_stream = rustls::Stream::new(&mut session, &mut stream);
 
@@ -65,7 +73,11 @@ fn handle_pair_request(mut stream: TcpStream, config_manager: &ConfigManager, tl
     tls_stream.read_exact(&mut buf)?;
     let cert_size = u32::from_be_bytes(buf);
     if cert_size > CERT_SIZE_LIMIT {
-        bail!("certificate size is too large: {} > {}(limit)", cert_size, CERT_SIZE_LIMIT);
+        bail!(
+            "certificate size is too large: {} > {}(limit)",
+            cert_size,
+            CERT_SIZE_LIMIT
+        );
     }
 
     // read certificate
@@ -173,7 +185,11 @@ fn handle_notification_request(mut stream: TcpStream, tls_info: &TlsInfo) -> Res
         tls_stream.read_exact(&mut buf)?;
         let size = u32::from_be_bytes(buf);
         if size > PAYLOAD_LIMIT {
-            bail!("payload size is too large: {} > {}(limit)", size, PAYLOAD_LIMIT);
+            bail!(
+                "payload size is too large: {} > {}(limit)",
+                size,
+                PAYLOAD_LIMIT
+            );
         }
 
         let title: String;
@@ -206,7 +222,11 @@ fn handle_notification_request(mut stream: TcpStream, tls_info: &TlsInfo) -> Res
         tls_stream.read_exact(&mut buf)?;
         let size = u32::from_be_bytes(buf);
         if size > PAYLOAD_LIMIT {
-            bail!("payload size is too large: {} > {}(limit)", size, PAYLOAD_LIMIT);
+            bail!(
+                "payload size is too large: {} > {}(limit)",
+                size,
+                PAYLOAD_LIMIT
+            );
         }
         let mut buf = vec![0; size as usize];
         tls_stream.read_exact(&mut buf)?;
@@ -220,7 +240,11 @@ fn handle_notification_request(mut stream: TcpStream, tls_info: &TlsInfo) -> Res
     Notification::new()
         .summary(&title)
         .body(&message)
-        .image_data(Image::from_rgba(image.width() as i32, image.height() as i32, image.into_raw())?)
+        .image_data(Image::from_rgba(
+            image.width() as i32,
+            image.height() as i32,
+            image.into_raw(),
+        )?)
         .show()?;
 
     Ok(())
