@@ -1,10 +1,10 @@
-use anyhow::{format_err, Error, Result, bail};
+use anyhow::{bail, format_err, Error, Result};
 use configparser::ini::Ini;
 use regex::Regex;
+use std::collections::HashMap;
 use std::fs;
 use std::io::*;
 use std::path::{Path, PathBuf};
-use std::collections::HashMap;
 
 const DEFAULT_CONFIG_FILE_CONTENT: &str = include_str!("default_config.ini");
 
@@ -76,7 +76,8 @@ pub struct BluetoothConfig {
 impl BluetoothConfig {
     fn from_ini(ini: &Ini) -> Result<Self> {
         let enabled = get_bool_coerce(ini, "bluetooth", "bluetooth_server")?.unwrap_or(false);
-        let support_kitkat = get_bool_coerce(ini, "bluetooth", "bluetooth_support_kitkat")?.unwrap_or(false);
+        let support_kitkat =
+            get_bool_coerce(ini, "bluetooth", "bluetooth_support_kitkat")?.unwrap_or(false);
         Ok(Self {
             enabled,
             support_kitkat,
@@ -158,7 +159,10 @@ impl ConfigManager {
         let config_home_dir =
             dirs::config_dir().ok_or_else(|| format_err!("Unsupported platform"))?;
         let config_dir = config_home_dir.join("an2linux_rs");
-        let mut config_manager = Self { config_dir, config: None };
+        let mut config_manager = Self {
+            config_dir,
+            config: None,
+        };
         config_manager.ensure_config_dir_exists()?;
         config_manager.ensure_certificate_and_rsa_private_key_exists()?;
 
@@ -245,8 +249,9 @@ impl ConfigManager {
     pub fn add_authorized_cert(&self, cert_der: &dyn AsRef<[u8]>) -> Result<()> {
         let cert_der = cert_der.as_ref();
         let digest = ring::digest::digest(&ring::digest::SHA256, cert_der);
-        let digest_hex_formatted =
-            digest.as_ref().iter()
+        let digest_hex_formatted = digest
+            .as_ref()
+            .iter()
             .map(|x| format!("{:02X}", x))
             .collect::<Vec<String>>()
             .join(":");
@@ -270,7 +275,7 @@ impl ConfigManager {
 // data structure that holds `authorized_certs` file content
 pub struct AuthorizedCerts {
     // Fingerprint -> Certificate map
-    certs: HashMap<String, Vec<u8>>
+    certs: HashMap<String, Vec<u8>>,
 }
 
 impl AuthorizedCerts {
@@ -305,12 +310,13 @@ impl AuthorizedCerts {
             }
             hashmap.insert(fingerprint.to_owned(), cert_der);
         }
-        Ok(Self {
-            certs: hashmap,
-        })
+        Ok(Self { certs: hashmap })
     }
 
     pub fn get_all_der_certs(&self) -> Vec<rustls::Certificate> {
-        self.certs.values().map(|cert| rustls::Certificate(cert.clone())).collect()
+        self.certs
+            .values()
+            .map(|cert| rustls::Certificate(cert.clone()))
+            .collect()
     }
 }

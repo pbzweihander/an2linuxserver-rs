@@ -1,11 +1,11 @@
-use anyhow::{Result, bail};
+use anyhow::{bail, Result};
 use structopt::StructOpt;
 
-mod tls;
 mod config;
+mod opt;
 mod protocol;
 mod tcp;
-mod opt;
+mod tls;
 
 fn main() -> Result<()> {
     // parse command-line arguments
@@ -37,17 +37,15 @@ fn main() -> Result<()> {
                 // pairing request
                 let tls_config = tls_info.build_tls_info()?;
                 tcp::pairing_tcp_handler(&config_manager, tls_config)?;
-            },
+            }
             None => {
                 // notification daemon mode
-                let authorized_certs = config_manager
-                    .parse_authorized_cert()?
-                    .get_all_der_certs();
+                let authorized_certs = config_manager.parse_authorized_cert()?.get_all_der_certs();
                 let tls_config = tls_info
                     .with_client_auth(authorized_certs)
                     .build_tls_info()?;
                 tcp::notification_tcp_handler(&config_manager, tls_config)?;
-            },
+            }
         }
     }
 
