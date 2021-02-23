@@ -139,13 +139,10 @@ fn handle_notification_connection(mut stream: TcpStream, tls_info: &TlsInfo) -> 
     stream.read_exact(&mut buf)?;
 
     if let Some(conn_type) = ConnType::from(buf[0]) {
-        match conn_type {
-            ConnType::NotifConn => {
-                handle_notification_request(stream, tls_info)?;
-            }
-            _ => {
-                bail!("invalid connection type")
-            }
+        if let ConnType::NotifConn = conn_type {
+            handle_notification_request(stream, tls_info)?;
+        } else {
+            bail!("invalid connection type");
         }
     } else {
         // invalid conn type byte
