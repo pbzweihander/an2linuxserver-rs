@@ -43,7 +43,7 @@ pub struct TcpServerConfig {
 // for boolean coercion in Python configparser.
 fn get_bool_coerce(ini: &Ini, section: &str, key: &str) -> Result<Option<bool>> {
     let bool_str = ini.get(section, key);
-    if let None = bool_str {
+    if bool_str.is_none() {
         return Ok(None);
     }
     let bool_str = &bool_str.unwrap().to_lowercase()[..];
