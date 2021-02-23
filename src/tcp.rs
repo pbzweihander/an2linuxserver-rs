@@ -1,16 +1,13 @@
 use std::io::prelude::*;
-use std::net::{TcpListener, TcpStream, SocketAddr};
-use std::time::Duration;
+use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::sync::Arc;
+use std::time::Duration;
 
-use anyhow::{Result, bail};
-use rustls;
-use ring;
-use notify_rust::{Notification, Image};
-use image;
+use anyhow::{bail, Result};
+use notify_rust::{Image, Notification};
 
-use super::protocol::{ConnType, PairingResponse, NotificationFlag};
 use super::config::ConfigManager;
+use super::protocol::{ConnType, NotificationFlag, PairingResponse};
 use super::tls::TlsInfo;
 
 pub fn pairing_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInfo) -> Result<()> {
@@ -18,6 +15,8 @@ pub fn pairing_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInfo) ->
     let bind_addr = SocketAddr::from(([0, 0, 0, 0], port as u16));
     let listener = TcpListener::bind(bind_addr)?;
     for stream in listener.incoming() {
+        // FIXME
+        #[allow(clippy::single_match)]
         match stream {
             Ok(stream) => {
                 handle_pairing_connection(stream, config_manager, &tls_info)?;
@@ -32,7 +31,11 @@ pub fn pairing_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInfo) ->
     Ok(())
 }
 
-fn handle_pairing_connection(mut stream: TcpStream, config_manager: &ConfigManager, tls_info: &TlsInfo) -> Result<()> {
+fn handle_pairing_connection(
+    mut stream: TcpStream,
+    config_manager: &ConfigManager,
+    tls_info: &TlsInfo,
+) -> Result<()> {
     let mut buf = [0; 1];
     stream.set_read_timeout(Some(Duration::from_secs(10)))?;
     stream.read_exact(&mut buf)?;
@@ -55,7 +58,11 @@ fn handle_pairing_connection(mut stream: TcpStream, config_manager: &ConfigManag
 
 const CERT_SIZE_LIMIT: u32 = 10000;
 
-fn handle_pair_request(mut stream: TcpStream, config_manager: &ConfigManager, tls_info: &TlsInfo) -> Result<()> {
+fn handle_pair_request(
+    mut stream: TcpStream,
+    config_manager: &ConfigManager,
+    tls_info: &TlsInfo,
+) -> Result<()> {
     let mut session = rustls::ServerSession::new(&Arc::new(tls_info.config.clone()));
     let mut tls_stream = rustls::Stream::new(&mut session, &mut stream);
 
@@ -65,7 +72,11 @@ fn handle_pair_request(mut stream: TcpStream, config_manager: &ConfigManager, tl
     tls_stream.read_exact(&mut buf)?;
     let cert_size = u32::from_be_bytes(buf);
     if cert_size > CERT_SIZE_LIMIT {
-        bail!("certificate size is too large: {} > {}(limit)", cert_size, CERT_SIZE_LIMIT);
+        bail!(
+            "certificate size is too large: {} > {}(limit)",
+            cert_size,
+            CERT_SIZE_LIMIT
+        );
     }
 
     // read certificate
@@ -104,11 +115,11 @@ fn handle_pair_request(mut stream: TcpStream, config_manager: &ConfigManager, tl
     std::io::stdin().read_line(&mut q)?;
     let q = q.trim();
     if q != "yes" {
-        tls_stream.write_all(&mut [PairingResponse::Deny.into()])?;
+        tls_stream.write_all(&[PairingResponse::Deny.into()])?;
         bail!("user denied pairing")
     }
 
-    tls_stream.write_all(&mut [PairingResponse::Accept.into()])?;
+    tls_stream.write_all(&[PairingResponse::Accept.into()])?;
 
     // add to authorized_certs
     config_manager.add_authorized_cert(&client_cert)?;
@@ -121,6 +132,8 @@ pub fn notification_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInf
     let bind_addr = SocketAddr::from(([0, 0, 0, 0], port as u16));
     let listener = TcpListener::bind(bind_addr)?;
     for stream in listener.incoming() {
+        // FIXME
+        #[allow(clippy::single_match)]
         match stream {
             Ok(stream) => {
                 if let Err(e) = handle_notification_connection(stream, &tls_info) {
@@ -142,13 +155,10 @@ fn handle_notification_connection(mut stream: TcpStream, tls_info: &TlsInfo) -> 
     stream.read_exact(&mut buf)?;
 
     if let Some(conn_type) = ConnType::from(buf[0]) {
-        match conn_type {
-            ConnType::NotifConn => {
-                handle_notification_request(stream, tls_info)?;
-            }
-            _ => {
-                bail!("invalid connection type")
-            }
+        if let ConnType::NotifConn = conn_type {
+            handle_notification_request(stream, tls_info)?;
+        } else {
+            bail!("invalid connection type");
         }
     } else {
         // invalid conn type byte
@@ -173,7 +183,11 @@ fn handle_notification_request(mut stream: TcpStream, tls_info: &TlsInfo) -> Res
         tls_stream.read_exact(&mut buf)?;
         let size = u32::from_be_bytes(buf);
         if size > PAYLOAD_LIMIT {
-            bail!("payload size is too large: {} > {}(limit)", size, PAYLOAD_LIMIT);
+            bail!(
+                "payload size is too large: {} > {}(limit)",
+                size,
+                PAYLOAD_LIMIT
+            );
         }
 
         let title: String;
@@ -206,7 +220,11 @@ fn handle_notification_request(mut stream: TcpStream, tls_info: &TlsInfo) -> Res
         tls_stream.read_exact(&mut buf)?;
         let size = u32::from_be_bytes(buf);
         if size > PAYLOAD_LIMIT {
-            bail!("payload size is too large: {} > {}(limit)", size, PAYLOAD_LIMIT);
+            bail!(
+                "payload size is too large: {} > {}(limit)",
+                size,
+                PAYLOAD_LIMIT
+            );
         }
         let mut buf = vec![0; size as usize];
         tls_stream.read_exact(&mut buf)?;
@@ -220,7 +238,11 @@ fn handle_notification_request(mut stream: TcpStream, tls_info: &TlsInfo) -> Res
     Notification::new()
         .summary(&title)
         .body(&message)
-        .image_data(Image::from_rgba(image.width() as i32, image.height() as i32, image.into_raw())?)
+        .image_data(Image::from_rgba(
+            image.width() as i32,
+            image.height() as i32,
+            image.into_raw(),
+        )?)
         .show()?;
 
     Ok(())
