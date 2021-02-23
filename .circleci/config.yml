@@ -1,0 +1,60 @@
+version: 2.1
+
+jobs:
+  test:
+    docker:
+    - image: rust:1.49.0
+    working_directory: /app
+    steps:
+    - checkout
+    - run:
+        name: Install components
+        command: |
+          rustup component add rustfmt clippy
+    - restore_cache:
+        keys:
+        - test-v1-{{ checksum "Cargo.lock" }}-
+        - test-v1-
+    - run:
+        name: Check formatting
+        command: |
+          cargo fmt -- --check --verbose
+    - run:
+        name: Check clippy
+        command: |
+          cargo clippy -- -D warnings
+    - save_cache:
+        key: test-v1-{{ checksum "Cargo.lock" }}-{{ epoch }}
+        paths:
+        - target
+        - /usr/local/cargo/registry
+
+  build:
+    docker:
+    - image: clux/muslrust:1.49.0-stable
+    working_directory: /app
+    steps:
+    - checkout
+    - restore_cache:
+        keys:
+        - build-v1-{{ checksum "Cargo.lock" }}-
+        - build-v1-
+    - run:
+        name: Build
+        command: |
+          cargo build --release
+    - save_cache:
+        key: build-v1-{{ checksum "Cargo.lock" }}-{{ epoch }}
+        paths:
+        - target
+        - ~/.cargo/registry
+    - store_artifacts:
+        path: target/x86_64-unknown-linux-musl/release/an2linuxserver
+        destination: an2linuxserver
+
+workflows:
+  version: 2
+  test-build-and-deploy:
+    jobs:
+    - test
+    - build
