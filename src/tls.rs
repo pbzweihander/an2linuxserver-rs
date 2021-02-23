@@ -85,7 +85,7 @@ impl TlsInfoBuilder {
     }
 }
 
-pub struct CustomClientCertVerifier {
+struct CustomClientCertVerifier {
     allowed_certs: Vec<rustls::Certificate>,
     subject_names: DistinguishedNames,
 }
