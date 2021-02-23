@@ -8,15 +8,15 @@ edition = "2018"
 
 [dependencies]
 anyhow = "1.0.38"
+base64 = "0.13.0"
 configparser = "2.0.0"
 dirs = "3.0.1"
+image = "0.23.13"
+notify-rust = { git = "https://github.com/skystar-p/notify-rust", branch = "image_rgba", features = ["z", "images"] }
 regex = "1.4.3"
-rustls = { version = "0.19.0", features = ["dangerous_configuration"] }
-rustls-pemfile = "0.2.0"
 ring = "0.16.20"
+rustls-pemfile = "0.2.0"
+rustls = { version = "0.19.0", features = ["dangerous_configuration"] }
 structopt = "0.3.21"
-base64 = "0.13.0"
 webpki = "0.21.4"
 x509-signature = "0.5.0"
-notify-rust = { git = "https://github.com/skystar-p/notify-rust", branch = "image_rgba", features = ["z", "images"] }
-image = "0.23.13"
