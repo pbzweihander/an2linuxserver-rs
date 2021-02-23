@@ -299,7 +299,7 @@ impl AuthorizedCerts {
             if fingerprint.is_empty() {
                 continue;
             }
-            let cert_der = base64::decode(s[1]).unwrap_or(vec![]);
+            let cert_der = base64::decode(s[1]).unwrap_or_default();
             if cert_der.is_empty() {
                 continue;
             }
