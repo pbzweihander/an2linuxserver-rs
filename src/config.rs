@@ -296,7 +296,7 @@ impl AuthorizedCerts {
                     splitted[0]
                 }
             };
-            if fingerprint == "" {
+            if fingerprint.is_empty() {
                 continue;
             }
             let cert_der = base64::decode(s[1]).unwrap_or(vec![]);
