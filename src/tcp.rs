@@ -101,11 +101,11 @@ fn handle_pair_request(mut stream: TcpStream, config_manager: &ConfigManager, tl
     std::io::stdin().read_line(&mut q)?;
     let q = q.trim();
     if q != "yes" {
-        tls_stream.write_all(&mut [PairingResponse::Deny.into()])?;
+        tls_stream.write_all(&[PairingResponse::Deny.into()])?;
         bail!("user denied pairing")
     }
 
-    tls_stream.write_all(&mut [PairingResponse::Accept.into()])?;
+    tls_stream.write_all(&[PairingResponse::Accept.into()])?;
 
     // add to authorized_certs
     config_manager.add_authorized_cert(&client_cert)?;
