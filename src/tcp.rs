@@ -15,6 +15,8 @@ pub fn pairing_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInfo) ->
     let bind_addr = SocketAddr::from(([0, 0, 0, 0], port as u16));
     let listener = TcpListener::bind(bind_addr)?;
     for stream in listener.incoming() {
+        // FIXME
+        #[allow(clippy::single_match)]
         match stream {
             Ok(stream) => {
                 handle_pairing_connection(stream, config_manager, &tls_info)?;
@@ -118,6 +120,8 @@ pub fn notification_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInf
     let bind_addr = SocketAddr::from(([0, 0, 0, 0], port as u16));
     let listener = TcpListener::bind(bind_addr)?;
     for stream in listener.incoming() {
+        // FIXME
+        #[allow(clippy::single_match)]
         match stream {
             Ok(stream) => {
                 if let Err(e) = handle_notification_connection(stream, &tls_info) {
