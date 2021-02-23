@@ -289,7 +289,7 @@ impl AuthorizedCerts {
                 continue;
             }
             let fingerprint = {
-                let splitted = s[0].splitn(2, ":").collect::<Vec<&str>>();
+                let splitted = s[0].splitn(2, ':').collect::<Vec<&str>>();
                 if splitted.len() < 2 {
                     ""
                 } else {
