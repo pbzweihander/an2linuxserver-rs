@@ -215,6 +215,7 @@ fn handle_notification_request(mut stream: TcpStream, tls_info: &TlsInfo) -> Res
         vec![]
     };
 
+    // TODO: filter message
     let image = image::load_from_memory(&icon_bytes)?.into_rgba8();
     Notification::new()
         .summary(&title)
