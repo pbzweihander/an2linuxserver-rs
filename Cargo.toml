@@ -30,8 +30,9 @@ structopt = "0.3.21"
 webpki = "0.21.4"
 x509-signature = "0.5.0"
 
+# FIXME: Use original when merged and released
 [dependencies.notify-rust]
-git = "https://github.com/skystar-p/notify-rust"
-branch = "image_rgba"
+git = "https://github.com/pbzweihander/notify-rust"
+branch = "image-with-alpha"
 features = ["z", "images"]
 default-features = false

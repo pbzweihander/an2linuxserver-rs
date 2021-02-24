@@ -699,7 +699,7 @@ dependencies = [
 [[package]]
 name = "notify-rust"
 version = "4.2.2"
-source = "git+https://github.com/skystar-p/notify-rust?branch=image_rgba#36986409e52f3dd7a8f9d21ff6be6eb8edd76d7e"
+source = "git+https://github.com/pbzweihander/notify-rust?branch=image-with-alpha#44f5b3d5905e8dc274f216e86fc9c3f4b8fb92dd"
 dependencies = [
  "image",
  "lazy_static",

@@ -1,3 +1,4 @@
+use std::convert::TryFrom;
 use std::io::prelude::*;
 use std::net::{SocketAddr, TcpListener, TcpStream};
 use std::time::Duration;
@@ -237,15 +238,11 @@ fn handle_notification_request(mut stream: TcpStream, tls_info: &TlsInfo) -> Res
     };
 
     // TODO: filter message
-    let image = image::load_from_memory(&icon_bytes)?.into_rgba8();
+
     Notification::new()
         .summary(&title)
         .body(&message)
-        .image_data(Image::from_rgba(
-            image.width() as i32,
-            image.height() as i32,
-            image.into_raw(),
-        )?)
+        .image_data(Image::try_from(image::load_from_memory(&icon_bytes)?)?)
         .show()?;
 
     Ok(())
