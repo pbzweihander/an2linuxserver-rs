@@ -17,7 +17,9 @@ license = "GPL-3.0-or-later"
 [dependencies]
 anyhow = "1.0.38"
 base64 = "0.13.0"
-configparser = "2.0.0"
+# configparser = "2.0.0"
+# FIXME: Remove when released
+configparser = { git = "https://github.com/mexili/configparser-rs", rev = "af5b3db4d080fcbc709f2597a22fefb2218dce64" }
 dirs = "3.0.1"
 image = "0.23.13"
 regex = "1.4.3"
