@@ -28,7 +28,6 @@ fn main() -> Result<()> {
         // TODO: show warning
     }
 
-    // TODO: Implement core
     // TODO: signal handling
     let tls_info = tls::TlsInfoBuilder::new(certs, privkey);
     if config.tcp.enabled {
@@ -51,6 +50,8 @@ fn main() -> Result<()> {
             }
         }
     }
+
+    // TODO: Implement bluetooth
 
     Ok(())
 }
