@@ -6,16 +6,16 @@ use std::time::Duration;
 use anyhow::{bail, Result};
 use notify_rust::{Image, Notification};
 
-use crate::config::{AuthorizedCertsManager, Config};
+use crate::config::{AuthorizedCertsManager, TcpServerConfig};
 use crate::protocol::{ConnType, NotificationFlag, PairingResponse};
 use crate::tls::TlsInfo;
 
 pub fn pairing_tcp_handler(
-    config: &Config,
+    config: &TcpServerConfig,
     authorized_certs_manager: &AuthorizedCertsManager,
     tls_info: TlsInfo,
 ) -> Result<()> {
-    let port = config.tcp.port;
+    let port = config.port;
     let bind_addr = SocketAddr::from(([0, 0, 0, 0], port as u16));
     let listener = TcpListener::bind(bind_addr)?;
     for stream in listener.incoming() {
@@ -129,8 +129,8 @@ fn handle_pair_request(
     Ok(())
 }
 
-pub fn notification_tcp_handler(config: &Config, tls_info: TlsInfo) -> Result<()> {
-    let port = config.tcp.port;
+pub fn notification_tcp_handler(config: &TcpServerConfig, tls_info: TlsInfo) -> Result<()> {
+    let port = config.port;
     let bind_addr = SocketAddr::from(([0, 0, 0, 0], port as u16));
     let listener = TcpListener::bind(bind_addr)?;
     for stream in listener.incoming() {

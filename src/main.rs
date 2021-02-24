@@ -40,7 +40,7 @@ fn main() -> Result<()> {
                 // pairing request
                 let authorized_certs_manager = config_manager.authorized_certs_manager();
                 let tls_config = tls_info.build_tls_info()?;
-                tcp::pairing_tcp_handler(&config, &authorized_certs_manager, tls_config)?;
+                tcp::pairing_tcp_handler(&config.tcp, &authorized_certs_manager, tls_config)?;
             }
             None => {
                 // notification daemon mode
@@ -50,7 +50,7 @@ fn main() -> Result<()> {
                 let tls_config = tls_info
                     .with_client_auth(utils::hashmap_into_values(authorized_certs))
                     .build_tls_info()?;
-                tcp::notification_tcp_handler(&config, tls_config)?;
+                tcp::notification_tcp_handler(&config.tcp, tls_config)?;
             }
         }
     }
