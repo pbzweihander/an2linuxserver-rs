@@ -5,14 +5,15 @@ mod opt;
 mod protocol;
 mod tcp;
 mod tls;
+mod utils;
 
 fn main() -> Result<()> {
     // parse command-line arguments
     let opt = opt::Opt::from_args();
-    let config_manager = config::ConfigManager::try_default(true)?;
+    let config_manager = config::ConfigManager::new();
     config_manager.ensure_config_dir_exists()?;
     config_manager.ensure_certificate_and_rsa_private_key_exists()?;
-    let config = config_manager.get_config().unwrap();
+    let config = config_manager.get_or_create_config()?;
 
     if !config.tcp.enabled && !config.bluetooth.enabled {
         panic!("Neither TCP nor Bluetooth is enabled");
@@ -34,16 +35,19 @@ fn main() -> Result<()> {
         match opt.cmd {
             Some(opt::Subcommand::Pair) => {
                 // pairing request
+                let authorized_certs_manager = config_manager.authorized_certs_manager();
                 let tls_config = tls_info.build_tls_info()?;
-                tcp::pairing_tcp_handler(&config_manager, tls_config)?;
+                tcp::pairing_tcp_handler(&config, &authorized_certs_manager, tls_config)?;
             }
             None => {
                 // notification daemon mode
-                let authorized_certs = config_manager.parse_authorized_cert()?.get_all_der_certs();
+                let authorized_certs = config_manager
+                    .authorized_certs_manager()
+                    .parse_authorized_certs()?;
                 let tls_config = tls_info
-                    .with_client_auth(authorized_certs)
+                    .with_client_auth(utils::hashmap_into_values(authorized_certs))
                     .build_tls_info()?;
-                tcp::notification_tcp_handler(&config_manager, tls_config)?;
+                tcp::notification_tcp_handler(&config, tls_config)?;
             }
         }
     }

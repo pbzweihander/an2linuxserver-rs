@@ -6,12 +6,16 @@ use std::time::Duration;
 use anyhow::{bail, Result};
 use notify_rust::{Image, Notification};
 
-use crate::config::ConfigManager;
+use crate::config::{AuthorizedCertsManager, Config};
 use crate::protocol::{ConnType, NotificationFlag, PairingResponse};
 use crate::tls::TlsInfo;
 
-pub fn pairing_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInfo) -> Result<()> {
-    let port = config_manager.get_config().unwrap().tcp.port;
+pub fn pairing_tcp_handler(
+    config: &Config,
+    authorized_certs_manager: &AuthorizedCertsManager,
+    tls_info: TlsInfo,
+) -> Result<()> {
+    let port = config.tcp.port;
     let bind_addr = SocketAddr::from(([0, 0, 0, 0], port as u16));
     let listener = TcpListener::bind(bind_addr)?;
     for stream in listener.incoming() {
@@ -19,7 +23,7 @@ pub fn pairing_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInfo) ->
         #[allow(clippy::single_match)]
         match stream {
             Ok(stream) => {
-                handle_pairing_connection(stream, config_manager, &tls_info)?;
+                handle_pairing_connection(stream, authorized_certs_manager, &tls_info)?;
                 println!("successfully paired");
                 return Ok(());
             }
@@ -33,7 +37,7 @@ pub fn pairing_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInfo) ->
 
 fn handle_pairing_connection(
     mut stream: TcpStream,
-    config_manager: &ConfigManager,
+    authorized_certs_manager: &AuthorizedCertsManager,
     tls_info: &TlsInfo,
 ) -> Result<()> {
     let mut buf = [0; 1];
@@ -43,7 +47,7 @@ fn handle_pairing_connection(
     if let Some(conn_type) = ConnType::from(buf[0]) {
         match conn_type {
             ConnType::PairRequest => {
-                handle_pair_request(stream, config_manager, tls_info)?;
+                handle_pair_request(stream, authorized_certs_manager, tls_info)?;
             }
             _ => {
                 bail!("invalid connection type")
@@ -60,7 +64,7 @@ const CERT_SIZE_LIMIT: u32 = 10000;
 
 fn handle_pair_request(
     mut stream: TcpStream,
-    config_manager: &ConfigManager,
+    authorized_certs_manager: &AuthorizedCertsManager,
     tls_info: &TlsInfo,
 ) -> Result<()> {
     let mut session = rustls::ServerSession::new(&Arc::new(tls_info.config.clone()));
@@ -122,13 +126,13 @@ fn handle_pair_request(
     tls_stream.write_all(&[PairingResponse::Accept.into()])?;
 
     // add to authorized_certs
-    config_manager.add_authorized_cert(&client_cert)?;
+    authorized_certs_manager.add_authorized_cert(&client_cert)?;
 
     Ok(())
 }
 
-pub fn notification_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInfo) -> Result<()> {
-    let port = config_manager.get_config().unwrap().tcp.port;
+pub fn notification_tcp_handler(config: &Config, tls_info: TlsInfo) -> Result<()> {
+    let port = config.tcp.port;
     let bind_addr = SocketAddr::from(([0, 0, 0, 0], port as u16));
     let listener = TcpListener::bind(bind_addr)?;
     for stream in listener.incoming() {
