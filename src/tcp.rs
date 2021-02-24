@@ -19,16 +19,14 @@ pub fn pairing_tcp_handler(
     let bind_addr = SocketAddr::from(([0, 0, 0, 0], port as u16));
     let listener = TcpListener::bind(bind_addr)?;
     for stream in listener.incoming() {
-        // FIXME
-        #[allow(clippy::single_match)]
         match stream {
             Ok(stream) => {
                 handle_pairing_connection(stream, authorized_certs_manager, &tls_info)?;
                 println!("successfully paired");
                 return Ok(());
             }
-            Err(_) => {
-                // TODO: log to stderr and continue
+            Err(e) => {
+                eprintln!("error handling incoming stream: {:?}", e);
             }
         }
     }
