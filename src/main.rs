@@ -1,5 +1,4 @@
 use anyhow::{bail, Result};
-use structopt::StructOpt;
 
 mod config;
 mod opt;
