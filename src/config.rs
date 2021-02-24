@@ -1,10 +1,11 @@
-use anyhow::{bail, format_err, Error, Result};
-use configparser::ini::Ini;
-use regex::Regex;
 use std::collections::HashMap;
 use std::fs;
 use std::io::*;
 use std::path::{Path, PathBuf};
+
+use anyhow::{bail, format_err, Error, Result};
+use configparser::ini::Ini;
+use regex::Regex;
 
 const DEFAULT_CONFIG_FILE_CONTENT: &str = include_str!("default_config.ini");
 

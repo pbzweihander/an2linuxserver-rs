@@ -6,9 +6,9 @@ use std::time::Duration;
 use anyhow::{bail, Result};
 use notify_rust::{Image, Notification};
 
-use super::config::ConfigManager;
-use super::protocol::{ConnType, NotificationFlag, PairingResponse};
-use super::tls::TlsInfo;
+use crate::config::ConfigManager;
+use crate::protocol::{ConnType, NotificationFlag, PairingResponse};
+use crate::tls::TlsInfo;
 
 pub fn pairing_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInfo) -> Result<()> {
     let port = config_manager.get_config().unwrap().tcp.port;

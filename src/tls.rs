@@ -1,15 +1,15 @@
-use anyhow::{bail, Result};
-use rustls::internal::msgs::handshake::DigitallySignedStruct;
-use rustls::SignatureScheme as RScheme;
-use rustls::{
-    ClientCertVerified, ClientCertVerifier, DistinguishedNames, HandshakeSignatureValid, TLSError,
-};
 use std::fs;
 use std::io::BufReader;
 use std::path::Path;
 use std::sync::Arc;
-use x509_signature::parse_certificate;
-use x509_signature::SignatureScheme as XScheme;
+
+use anyhow::{bail, Result};
+use rustls::internal::msgs::handshake::DigitallySignedStruct;
+use rustls::{
+    ClientCertVerified, ClientCertVerifier, DistinguishedNames, HandshakeSignatureValid,
+    SignatureScheme as RScheme, TLSError,
+};
+use x509_signature::{parse_certificate, SignatureScheme as XScheme};
 
 #[derive(Clone)]
 pub struct TlsInfo {
