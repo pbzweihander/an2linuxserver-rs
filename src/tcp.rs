@@ -1,6 +1,5 @@
 use std::io::prelude::*;
 use std::net::{SocketAddr, TcpListener, TcpStream};
-use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::{bail, Result};
@@ -67,7 +66,7 @@ fn handle_pair_request(
     authorized_certs_manager: &AuthorizedCertsManager,
     tls_info: &TlsInfo,
 ) -> Result<()> {
-    let mut session = rustls::ServerSession::new(&Arc::new(tls_info.config.clone()));
+    let mut session = rustls::ServerSession::new(&tls_info.config());
     let mut tls_stream = rustls::Stream::new(&mut session, &mut stream);
 
     // start reading pair request header
@@ -86,7 +85,7 @@ fn handle_pair_request(
     // read certificate
     let mut buf = vec![0; cert_size as usize];
     tls_stream.read_exact(&mut buf)?;
-    let server_cert = &tls_info.certs[0];
+    let server_cert = tls_info.get_first_cert();
     let client_cert = buf.clone();
     buf.extend(server_cert.as_ref().to_vec());
     let digest = ring::digest::digest(&ring::digest::SHA256, buf.as_ref());
@@ -174,7 +173,7 @@ fn handle_notification_connection(mut stream: TcpStream, tls_info: &TlsInfo) -> 
 const PAYLOAD_LIMIT: u32 = 10000;
 
 fn handle_notification_request(mut stream: TcpStream, tls_info: &TlsInfo) -> Result<()> {
-    let mut session = rustls::ServerSession::new(&Arc::new(tls_info.config.clone()));
+    let mut session = rustls::ServerSession::new(&tls_info.config());
     stream.set_read_timeout(Some(Duration::from_secs(10)))?;
     let mut tls_stream = rustls::Stream::new(&mut session, &mut stream);
 
