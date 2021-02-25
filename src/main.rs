@@ -39,7 +39,7 @@ fn main() -> Result<()> {
             Some(opt::Subcommand::Pair) => {
                 // pairing request
                 let authorized_certs_manager = config_manager.authorized_certs_manager();
-                let tls_config = tls_info.build_tls_info()?;
+                let tls_config = tls_info.build()?;
                 tcp::pairing_tcp_handler(&config.tcp, &authorized_certs_manager, tls_config)?;
             }
             None => {
@@ -49,7 +49,7 @@ fn main() -> Result<()> {
                     .parse_authorized_certs()?;
                 let tls_config = tls_info
                     .with_client_auth(utils::hashmap_into_values(authorized_certs))
-                    .build_tls_info()?;
+                    .build()?;
                 tcp::notification_tcp_handler(&config.tcp, tls_config)?;
             }
         }

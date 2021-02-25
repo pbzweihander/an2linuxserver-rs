@@ -78,7 +78,7 @@ impl TlsInfoBuilder {
         }
     }
 
-    pub fn build_tls_info(self) -> Result<TlsInfo> {
+    pub fn build(self) -> Result<TlsInfo> {
         let mut config = if let Some(client_certs) = self.client_certs {
             let custom_cert_verifier = Arc::new(CustomClientCertVerifier::new(client_certs)?);
             rustls::ServerConfig::new(custom_cert_verifier)
