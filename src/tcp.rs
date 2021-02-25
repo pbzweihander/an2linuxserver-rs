@@ -25,6 +25,7 @@ pub fn pairing_tcp_handler(
 ) -> Result<()> {
     let port = config.port;
     let listener = new_tcp_listener(port)?;
+    println!("listening for pairing requests at port {}", port);
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
@@ -139,6 +140,7 @@ fn handle_pair_request(
 pub fn notification_tcp_handler(config: &TcpServerConfig, tls_info: TlsInfo) -> Result<()> {
     let port = config.port as u16;
     let listener = new_tcp_listener(port)?;
+    log::info!("listening for notifications at port {}", port);
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
