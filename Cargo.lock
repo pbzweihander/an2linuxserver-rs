@@ -30,11 +30,13 @@ dependencies = [
  "configparser",
  "dirs 3.0.1",
  "image",
+ "log",
  "notify-rust",
  "regex",
  "ring",
  "rustls",
  "rustls-pemfile",
+ "simple_logger",
  "structopt",
  "webpki",
  "x509-signature",
@@ -216,6 +218,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3d7b894f5411737b7867f4827955924d7c254fc9f4d91a6aad6b097804b1018b"
 
 [[package]]
+name = "colored"
+version = "1.9.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "f4ffc801dacf156c5854b9df4f425a626539c3a6ef7893cc0c5084a23f0b6c59"
+dependencies = [
+ "atty",
+ "lazy_static",
+ "winapi",
+]
+
+[[package]]
 name = "concurrent-queue"
 version = "1.2.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -227,8 +240,7 @@ dependencies = [
 [[package]]
 name = "configparser"
 version = "2.0.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "e2616d8c1fbf887d76dd8e067ec1bc3be7669994378428b4415a8e4ad57baae1"
+source = "git+https://github.com/mexili/configparser-rs?rev=af5b3db4d080fcbc709f2597a22fefb2218dce64#af5b3db4d080fcbc709f2597a22fefb2218dce64"
 
 [[package]]
 name = "constant_time_eq"
@@ -700,7 +712,7 @@ dependencies = [
 [[package]]
 name = "notify-rust"
 version = "4.2.2"
-source = "git+https://github.com/skystar-p/notify-rust?branch=image_rgba#36986409e52f3dd7a8f9d21ff6be6eb8edd76d7e"
+source = "git+https://github.com/pbzweihander/notify-rust?branch=image-with-alpha#44f5b3d5905e8dc274f216e86fc9c3f4b8fb92dd"
 dependencies = [
  "image",
  "lazy_static",
@@ -1082,6 +1094,19 @@ dependencies = [
  "proc-macro2",
  "quote 1.0.9",
  "syn 1.0.60",
+]
+
+[[package]]
+name = "simple_logger"
+version = "1.11.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd57f17c093ead1d4a1499dc9acaafdd71240908d64775465543b8d9a9f1d198"
+dependencies = [
+ "atty",
+ "chrono",
+ "colored",
+ "log",
+ "winapi",
 ]
 
 [[package]]

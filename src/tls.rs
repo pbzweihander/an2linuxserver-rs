@@ -1,20 +1,30 @@
-use anyhow::{bail, Result};
-use rustls::internal::msgs::handshake::DigitallySignedStruct;
-use rustls::SignatureScheme as RScheme;
-use rustls::{
-    ClientCertVerified, ClientCertVerifier, DistinguishedNames, HandshakeSignatureValid, TLSError,
-};
 use std::fs;
 use std::io::BufReader;
 use std::path::Path;
 use std::sync::Arc;
-use x509_signature::parse_certificate;
-use x509_signature::SignatureScheme as XScheme;
+
+use anyhow::{bail, Result};
+use rustls::internal::msgs::handshake::DigitallySignedStruct;
+use rustls::{
+    ClientCertVerified, ClientCertVerifier, DistinguishedNames, HandshakeSignatureValid,
+    SignatureScheme as RScheme, TLSError,
+};
+use x509_signature::{parse_certificate, SignatureScheme as XScheme};
 
 #[derive(Clone)]
 pub struct TlsInfo {
-    pub certs: Vec<rustls::Certificate>,
-    pub config: rustls::ServerConfig,
+    certs: Vec<rustls::Certificate>,
+    config: Arc<rustls::ServerConfig>,
+}
+
+impl TlsInfo {
+    pub fn get_first_cert(&self) -> &rustls::Certificate {
+        &self.certs[0]
+    }
+
+    pub fn config(&self) -> Arc<rustls::ServerConfig> {
+        self.config.clone()
+    }
 }
 
 pub fn load_certs(filename: &Path) -> Result<Vec<rustls::Certificate>> {
@@ -68,29 +78,22 @@ impl TlsInfoBuilder {
         }
     }
 
-    pub fn build_tls_info(self) -> Result<TlsInfo> {
-        if let Some(client_certs) = self.client_certs {
+    pub fn build(self) -> Result<TlsInfo> {
+        let mut config = if let Some(client_certs) = self.client_certs {
             let custom_cert_verifier = Arc::new(CustomClientCertVerifier::new(client_certs)?);
-            let mut config = rustls::ServerConfig::new(custom_cert_verifier);
-            config.set_single_cert(self.server_certs.clone(), self.privkey)?;
-
-            Ok(TlsInfo {
-                certs: self.server_certs,
-                config,
-            })
+            rustls::ServerConfig::new(custom_cert_verifier)
         } else {
-            let mut config = rustls::ServerConfig::new(rustls::NoClientAuth::new());
-            config.set_single_cert(self.server_certs.clone(), self.privkey)?;
-
-            Ok(TlsInfo {
-                certs: self.server_certs,
-                config,
-            })
-        }
+            rustls::ServerConfig::new(rustls::NoClientAuth::new())
+        };
+        config.set_single_cert(self.server_certs.clone(), self.privkey)?;
+        Ok(TlsInfo {
+            certs: self.server_certs,
+            config: Arc::new(config),
+        })
     }
 }
 
-pub struct CustomClientCertVerifier {
+struct CustomClientCertVerifier {
     allowed_certs: Vec<rustls::Certificate>,
     subject_names: DistinguishedNames,
 }

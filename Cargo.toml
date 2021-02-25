@@ -1,27 +1,40 @@
 [package]
 name = "an2linuxserver"
 version = "0.1.0"
-authors = ["rusty <rusty@spoqa.com>"]
+description = "Sync Android notifications to a Linux (and more!) desktop, inspired by https://github.com/rootkiwi/an2linuxserver"
+authors = [
+    "Kangwook Lee <pbzweihander@gmail.com>",
+    "Jaehyeon Park <skystar@skystar.dev>",
+]
 edition = "2018"
+homepage = "https://github.com/pbzweihander/an2linuxserver-rs"
+repository = "https://github.com/pbzweihander/an2linuxserver-rs"
+readme = "README.md"
+license = "GPL-3.0-or-later"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 anyhow = "1.0.38"
 base64 = "0.13.0"
-configparser = "2.0.0"
+# configparser = "2.0.0"
+# FIXME: Remove when released
+configparser = { git = "https://github.com/mexili/configparser-rs", rev = "af5b3db4d080fcbc709f2597a22fefb2218dce64" }
 dirs = "3.0.1"
 image = "0.23.13"
+log = "0.4.14"
 regex = "1.4.3"
 ring = "0.16.20"
 rustls-pemfile = "0.2.0"
 rustls = { version = "0.19.0", features = ["dangerous_configuration"] }
+simple_logger = "1.11.0"
 structopt = "0.3.21"
 webpki = "0.21.4"
 x509-signature = "0.5.0"
 
+# FIXME: Use original when merged and released
 [dependencies.notify-rust]
-git = "https://github.com/skystar-p/notify-rust"
-branch = "image_rgba"
+git = "https://github.com/pbzweihander/notify-rust"
+branch = "image-with-alpha"
 features = ["z", "images"]
 default-features = false

@@ -1,30 +1,32 @@
+use std::convert::TryFrom;
 use std::io::prelude::*;
 use std::net::{SocketAddr, TcpListener, TcpStream};
-use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::{bail, Result};
 use notify_rust::{Image, Notification};
 
-use super::config::ConfigManager;
-use super::protocol::{ConnType, NotificationFlag, PairingResponse};
-use super::tls::TlsInfo;
+use crate::config::{AuthorizedCertsManager, TcpServerConfig};
+use crate::protocol::{ConnType, NotificationFlag, PairingResponse};
+use crate::tls::TlsInfo;
 
-pub fn pairing_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInfo) -> Result<()> {
-    let port = config_manager.get_config().unwrap().tcp.port;
+pub fn pairing_tcp_handler(
+    config: &TcpServerConfig,
+    authorized_certs_manager: &AuthorizedCertsManager,
+    tls_info: TlsInfo,
+) -> Result<()> {
+    let port = config.port;
     let bind_addr = SocketAddr::from(([0, 0, 0, 0], port as u16));
     let listener = TcpListener::bind(bind_addr)?;
     for stream in listener.incoming() {
-        // FIXME
-        #[allow(clippy::single_match)]
         match stream {
             Ok(stream) => {
-                handle_pairing_connection(stream, config_manager, &tls_info)?;
+                handle_pairing_connection(stream, authorized_certs_manager, &tls_info)?;
                 println!("successfully paired");
                 return Ok(());
             }
-            Err(_) => {
-                // TODO: log to stderr and continue
+            Err(e) => {
+                eprintln!("error handling incoming stream: {:?}", e);
             }
         }
     }
@@ -33,7 +35,7 @@ pub fn pairing_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInfo) ->
 
 fn handle_pairing_connection(
     mut stream: TcpStream,
-    config_manager: &ConfigManager,
+    authorized_certs_manager: &AuthorizedCertsManager,
     tls_info: &TlsInfo,
 ) -> Result<()> {
     let mut buf = [0; 1];
@@ -43,7 +45,7 @@ fn handle_pairing_connection(
     if let Some(conn_type) = ConnType::from(buf[0]) {
         match conn_type {
             ConnType::PairRequest => {
-                handle_pair_request(stream, config_manager, tls_info)?;
+                handle_pair_request(stream, authorized_certs_manager, tls_info)?;
             }
             _ => {
                 bail!("invalid connection type")
@@ -60,10 +62,10 @@ const CERT_SIZE_LIMIT: u32 = 10000;
 
 fn handle_pair_request(
     mut stream: TcpStream,
-    config_manager: &ConfigManager,
+    authorized_certs_manager: &AuthorizedCertsManager,
     tls_info: &TlsInfo,
 ) -> Result<()> {
-    let mut session = rustls::ServerSession::new(&Arc::new(tls_info.config.clone()));
+    let mut session = rustls::ServerSession::new(&tls_info.config());
     let mut tls_stream = rustls::Stream::new(&mut session, &mut stream);
 
     // start reading pair request header
@@ -82,7 +84,7 @@ fn handle_pair_request(
     // read certificate
     let mut buf = vec![0; cert_size as usize];
     tls_stream.read_exact(&mut buf)?;
-    let server_cert = &tls_info.certs[0];
+    let server_cert = tls_info.get_first_cert();
     let client_cert = buf.clone();
     buf.extend(server_cert.as_ref().to_vec());
     let digest = ring::digest::digest(&ring::digest::SHA256, buf.as_ref());
@@ -122,27 +124,24 @@ fn handle_pair_request(
     tls_stream.write_all(&[PairingResponse::Accept.into()])?;
 
     // add to authorized_certs
-    config_manager.add_authorized_cert(&client_cert)?;
+    authorized_certs_manager.add(&client_cert)?;
 
     Ok(())
 }
 
-pub fn notification_tcp_handler(config_manager: &ConfigManager, tls_info: TlsInfo) -> Result<()> {
-    let port = config_manager.get_config().unwrap().tcp.port;
+pub fn notification_tcp_handler(config: &TcpServerConfig, tls_info: TlsInfo) -> Result<()> {
+    let port = config.port;
     let bind_addr = SocketAddr::from(([0, 0, 0, 0], port as u16));
     let listener = TcpListener::bind(bind_addr)?;
     for stream in listener.incoming() {
-        // FIXME
-        #[allow(clippy::single_match)]
         match stream {
             Ok(stream) => {
                 if let Err(e) = handle_notification_connection(stream, &tls_info) {
-                    // TODO: log to stderr
-                    println!("error on notification handler: {:?}", e);
+                    log::error!("error on notification handler: {:?}", e);
                 }
             }
-            Err(_) => {
-                // TODO: log to stderr and continue
+            Err(e) => {
+                log::error!("error handling incoming stream: {:?}", e);
             }
         }
     }
@@ -170,7 +169,7 @@ fn handle_notification_connection(mut stream: TcpStream, tls_info: &TlsInfo) -> 
 const PAYLOAD_LIMIT: u32 = 10000;
 
 fn handle_notification_request(mut stream: TcpStream, tls_info: &TlsInfo) -> Result<()> {
-    let mut session = rustls::ServerSession::new(&Arc::new(tls_info.config.clone()));
+    let mut session = rustls::ServerSession::new(&tls_info.config());
     stream.set_read_timeout(Some(Duration::from_secs(10)))?;
     let mut tls_stream = rustls::Stream::new(&mut session, &mut stream);
 
@@ -234,15 +233,11 @@ fn handle_notification_request(mut stream: TcpStream, tls_info: &TlsInfo) -> Res
     };
 
     // TODO: filter message
-    let image = image::load_from_memory(&icon_bytes)?.into_rgba8();
+
     Notification::new()
         .summary(&title)
         .body(&message)
-        .image_data(Image::from_rgba(
-            image.width() as i32,
-            image.height() as i32,
-            image.into_raw(),
-        )?)
+        .image_data(Image::try_from(image::load_from_memory(&icon_bytes)?)?)
         .show()?;
 
     Ok(())

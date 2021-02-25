@@ -10,3 +10,9 @@ pub struct Opt {
 pub enum Subcommand {
     Pair,
 }
+
+impl Opt {
+    pub fn from_args() -> Self {
+        StructOpt::from_args()
+    }
+}

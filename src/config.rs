@@ -1,10 +1,11 @@
-use anyhow::{bail, format_err, Error, Result};
-use configparser::ini::Ini;
-use regex::Regex;
 use std::collections::HashMap;
 use std::fs;
 use std::io::*;
 use std::path::{Path, PathBuf};
+
+use anyhow::{bail, format_err, Error, Result};
+use configparser::ini::Ini;
+use regex::Regex;
 
 const DEFAULT_CONFIG_FILE_CONTENT: &str = include_str!("default_config.ini");
 
@@ -151,32 +152,13 @@ impl NotificationConfig {
 #[derive(Debug, Clone)]
 pub struct ConfigManager {
     config_dir: PathBuf,
-    config: Option<Config>,
 }
 
 impl ConfigManager {
-    pub fn try_default(load_config: bool) -> Result<Self> {
-        let config_home_dir =
-            dirs::config_dir().ok_or_else(|| format_err!("Unsupported platform"))?;
+    pub fn new() -> Self {
+        let config_home_dir = dirs::config_dir().expect("Unsupported platform");
         let config_dir = config_home_dir.join("an2linux_rs");
-        let mut config_manager = Self {
-            config_dir,
-            config: None,
-        };
-        config_manager.ensure_config_dir_exists()?;
-        config_manager.ensure_certificate_and_rsa_private_key_exists()?;
-
-        if load_config {
-            let config_file_path = config_manager.config_file_path();
-            if !config_file_path.is_file() {
-                Config::create_default_config_to_path(&config_file_path)?;
-            }
-            let config_content = fs::read_to_string(&config_file_path)?;
-            let mut ini = Ini::new_cs();
-            ini.read(config_content).map_err(Error::msg)?;
-            config_manager.config = Some(Config::from_ini(&ini)?);
-        }
-        Ok(config_manager)
+        Self { config_dir }
     }
 
     pub fn config_file_path(&self) -> PathBuf {
@@ -226,28 +208,75 @@ impl ConfigManager {
         Ok(())
     }
 
-    pub fn get_config(&self) -> Option<&Config> {
-        if let Some(config) = &self.config {
-            Some(&config)
-        } else {
-            None
+    pub fn get_or_create_config(&self) -> Result<Config> {
+        let config_file_path = self.config_file_path();
+        if !config_file_path.is_file() {
+            Config::create_default_config_to_path(&config_file_path)?;
         }
+        let config_content = fs::read_to_string(&config_file_path)?;
+        let mut ini = Ini::new_cs();
+        ini.read(config_content).map_err(Error::msg)?;
+        Ok(Config::from_ini(&ini)?)
     }
 
-    pub fn parse_authorized_cert(&self) -> Result<AuthorizedCerts> {
-        let authorized_certs_path = self.authorized_certs_path();
-        if !authorized_certs_path.is_file() {
-            fs::File::create(authorized_certs_path)?;
-            return Ok(AuthorizedCerts::new());
+    pub fn authorized_certs_manager(&self) -> AuthorizedCertsManager {
+        AuthorizedCertsManager {
+            path: self.authorized_certs_path(),
         }
-        let mut f = fs::File::open(authorized_certs_path)?;
-        let mut buf = String::new();
-        f.read_to_string(&mut buf)?;
-        AuthorizedCerts::from_str(&buf)
+    }
+}
+
+impl Default for ConfigManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Struct to add or parse authorized certs
+pub struct AuthorizedCertsManager {
+    path: PathBuf,
+}
+
+impl AuthorizedCertsManager {
+    /// returns (Fingerprint, Certificate) map
+    pub fn load(&self) -> Result<HashMap<String, rustls::Certificate>> {
+        if !self.path.is_file() {
+            fs::File::create(&self.path)?;
+            return Ok(HashMap::new());
+        }
+        let mut f = fs::File::open(&self.path)?;
+        let mut content = String::new();
+        f.read_to_string(&mut content)?;
+        let certs = content
+            .lines()
+            .filter_map(|line| {
+                let s = line.split_whitespace().collect::<Vec<&str>>();
+                if s.len() != 2 {
+                    return None;
+                }
+                let fingerprint = {
+                    let splitted = s[0].splitn(2, ':').collect::<Vec<&str>>();
+                    if splitted.len() < 2 {
+                        ""
+                    } else {
+                        splitted[0]
+                    }
+                };
+                if fingerprint.is_empty() {
+                    return None;
+                }
+                let cert_der = base64::decode(s[1]).unwrap_or_default();
+                if cert_der.is_empty() {
+                    None
+                } else {
+                    Some((fingerprint.to_string(), rustls::Certificate(cert_der)))
+                }
+            })
+            .collect();
+        Ok(certs)
     }
 
-    pub fn add_authorized_cert(&self, cert_der: &dyn AsRef<[u8]>) -> Result<()> {
-        let cert_der = cert_der.as_ref();
+    pub fn add(&self, cert_der: &[u8]) -> Result<()> {
         let digest = ring::digest::digest(&ring::digest::SHA256, cert_der);
         let digest_hex_formatted = digest
             .as_ref()
@@ -255,9 +284,9 @@ impl ConfigManager {
             .map(|x| format!("{:02X}", x))
             .collect::<Vec<String>>()
             .join(":");
-        let authorized_certs = self.parse_authorized_cert()?;
-        if authorized_certs.certs.get(&digest_hex_formatted).is_some() {
-            bail!("client certificate already exists")
+        let authorized_certs = self.load()?;
+        if authorized_certs.contains_key(&digest_hex_formatted) {
+            return Ok(());
         }
 
         let digest_hex_formatted = format!("SHA256:{}", digest_hex_formatted);
@@ -265,58 +294,9 @@ impl ConfigManager {
         let mut f = fs::OpenOptions::new()
             .write(true)
             .append(true)
-            .open(self.authorized_certs_path())?;
+            .open(&self.path)?;
         let s = format!("{} {}\n", digest_hex_formatted, base64_str);
         f.write_all(&s.into_bytes())?;
         Ok(())
-    }
-}
-
-// data structure that holds `authorized_certs` file content
-pub struct AuthorizedCerts {
-    // Fingerprint -> Certificate map
-    certs: HashMap<String, Vec<u8>>,
-}
-
-impl AuthorizedCerts {
-    fn new() -> Self {
-        Self {
-            certs: HashMap::new(),
-        }
-    }
-
-    fn from_str(content: &dyn AsRef<str>) -> Result<Self> {
-        let content = content.as_ref();
-        let mut hashmap: HashMap<String, Vec<u8>> = HashMap::new();
-        for line in content.lines() {
-            let s = line.split_whitespace().collect::<Vec<&str>>();
-            if s.len() != 2 {
-                continue;
-            }
-            let fingerprint = {
-                let splitted = s[0].splitn(2, ':').collect::<Vec<&str>>();
-                if splitted.len() < 2 {
-                    ""
-                } else {
-                    splitted[0]
-                }
-            };
-            if fingerprint.is_empty() {
-                continue;
-            }
-            let cert_der = base64::decode(s[1]).unwrap_or_default();
-            if cert_der.is_empty() {
-                continue;
-            }
-            hashmap.insert(fingerprint.to_owned(), cert_der);
-        }
-        Ok(Self { certs: hashmap })
-    }
-
-    pub fn get_all_der_certs(&self) -> Vec<rustls::Certificate> {
-        self.certs
-            .values()
-            .map(|cert| rustls::Certificate(cert.clone()))
-            .collect()
     }
 }
