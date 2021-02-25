@@ -31,8 +31,8 @@ pub fn load_certs(filename: &Path) -> Result<Vec<rustls::Certificate>> {
     let certfile = fs::File::open(filename)?;
     let mut reader = BufReader::new(certfile);
     let certs = rustls_pemfile::certs(&mut reader)?
-        .iter()
-        .map(|v| rustls::Certificate(v.clone()))
+        .into_iter()
+        .map(rustls::Certificate)
         .collect();
     Ok(certs)
 }

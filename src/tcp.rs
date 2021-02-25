@@ -1,6 +1,6 @@
 use std::convert::TryFrom;
 use std::io::prelude::*;
-use std::net::{SocketAddr, TcpListener, TcpStream};
+use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr, TcpListener, TcpStream};
 use std::time::Duration;
 
 use anyhow::{bail, Result};
@@ -10,14 +10,22 @@ use crate::config::{AuthorizedCertsManager, TcpServerConfig};
 use crate::protocol::{ConnType, NotificationFlag, PairingResponse};
 use crate::tls::TlsInfo;
 
+fn new_tcp_listener(port: u16) -> Result<TcpListener> {
+    let bind_addrs: &[_] = &[
+        SocketAddr::from((Ipv4Addr::UNSPECIFIED, port)),
+        SocketAddr::from((Ipv6Addr::UNSPECIFIED, port)),
+    ];
+    Ok(TcpListener::bind(bind_addrs)?)
+}
+
 pub fn pairing_tcp_handler(
     config: &TcpServerConfig,
     authorized_certs_manager: &AuthorizedCertsManager,
     tls_info: TlsInfo,
 ) -> Result<()> {
     let port = config.port;
-    let bind_addr = SocketAddr::from(([0, 0, 0, 0], port as u16));
-    let listener = TcpListener::bind(bind_addr)?;
+    let listener = new_tcp_listener(port)?;
+    println!("listening for pairing requests at port {}", port);
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {
@@ -130,9 +138,9 @@ fn handle_pair_request(
 }
 
 pub fn notification_tcp_handler(config: &TcpServerConfig, tls_info: TlsInfo) -> Result<()> {
-    let port = config.port;
-    let bind_addr = SocketAddr::from(([0, 0, 0, 0], port as u16));
-    let listener = TcpListener::bind(bind_addr)?;
+    let port = config.port as u16;
+    let listener = new_tcp_listener(port)?;
+    log::info!("listening for notifications at port {}", port);
     for stream in listener.incoming() {
         match stream {
             Ok(stream) => {

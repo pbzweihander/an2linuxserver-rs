@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::convert::TryInto;
 use std::fs;
 use std::io::*;
 use std::path::{Path, PathBuf};
@@ -37,7 +38,7 @@ impl Config {
 #[derive(Debug, Clone)]
 pub struct TcpServerConfig {
     pub enabled: bool,
-    pub port: u64,
+    pub port: u16,
 }
 
 // reimplementation of Ini::getboolcoerce, because of "on"/"off" string handling, which is valid
@@ -62,7 +63,8 @@ impl TcpServerConfig {
         let enabled = get_bool_coerce(ini, "tcp", "tcp_server")?.unwrap_or(true);
         let port = ini
             .getuint("tcp", "tcp_port")
-            .map_err(Error::msg)?
+            .map_err(Error::msg)
+            .and_then(|o| o.map(TryInto::try_into).transpose().map_err(Into::into))?
             .unwrap_or(46352);
         Ok(Self { enabled, port })
     }
