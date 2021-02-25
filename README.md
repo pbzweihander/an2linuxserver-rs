@@ -8,4 +8,4 @@ _an2linuxserver-rs_ is distributed under the terms of [GNU General Public Licens
 
 _an2linuxserver-rs_ is re-implementation of [rootkiwi/an2linuxserver](https://github.com/rootkiwi/an2linuxserver).
 
-See [LICENSE] for more details.
+See [LICENSE](LICENSE) for more details.
