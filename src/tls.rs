@@ -32,7 +32,7 @@ pub fn load_certs(filename: &Path) -> Result<Vec<rustls::Certificate>> {
     let mut reader = BufReader::new(certfile);
     let certs = rustls_pemfile::certs(&mut reader)?
         .into_iter()
-        .map(|v| rustls::Certificate(v))
+        .map(rustls::Certificate)
         .collect();
     Ok(certs)
 }
