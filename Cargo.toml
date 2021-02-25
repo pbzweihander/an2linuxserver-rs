@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Sync Android notifications to a Linux (and more!) desktop, inspired by https://github.com/rootkiwi/an2linuxserver"
 authors = [
     "Kangwook Lee <pbzweihander@gmail.com>",
-    "Jae Hyeon Park <skystar@skystar.dev>",
+    "Jaehyeon Park <skystar@skystar.dev>",
 ]
 edition = "2018"
 homepage = "https://github.com/pbzweihander/an2linuxserver-rs"
