@@ -124,7 +124,7 @@ fn handle_pair_request(
     tls_stream.write_all(&[PairingResponse::Accept.into()])?;
 
     // add to authorized_certs
-    authorized_certs_manager.add_authorized_cert(&client_cert)?;
+    authorized_certs_manager.add(&client_cert)?;
 
     Ok(())
 }

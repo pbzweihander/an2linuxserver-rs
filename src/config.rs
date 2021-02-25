@@ -239,7 +239,7 @@ pub struct AuthorizedCertsManager {
 
 impl AuthorizedCertsManager {
     /// returns (Fingerprint, Certificate) map
-    pub fn parse_authorized_certs(&self) -> Result<HashMap<String, rustls::Certificate>> {
+    pub fn load(&self) -> Result<HashMap<String, rustls::Certificate>> {
         if !self.path.is_file() {
             fs::File::create(&self.path)?;
             return Ok(HashMap::new());
@@ -276,7 +276,7 @@ impl AuthorizedCertsManager {
         Ok(certs)
     }
 
-    pub fn add_authorized_cert(&self, cert_der: &[u8]) -> Result<()> {
+    pub fn add(&self, cert_der: &[u8]) -> Result<()> {
         let digest = ring::digest::digest(&ring::digest::SHA256, cert_der);
         let digest_hex_formatted = digest
             .as_ref()
@@ -284,7 +284,7 @@ impl AuthorizedCertsManager {
             .map(|x| format!("{:02X}", x))
             .collect::<Vec<String>>()
             .join(":");
-        let authorized_certs = self.parse_authorized_certs()?;
+        let authorized_certs = self.load()?;
         if authorized_certs.contains_key(&digest_hex_formatted) {
             return Ok(());
         }

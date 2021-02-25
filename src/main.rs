@@ -44,9 +44,7 @@ fn main() -> Result<()> {
             }
             None => {
                 // notification daemon mode
-                let authorized_certs = config_manager
-                    .authorized_certs_manager()
-                    .parse_authorized_certs()?;
+                let authorized_certs = config_manager.authorized_certs_manager().load()?;
                 let tls_config = tls_info
                     .with_client_auth(utils::hashmap_into_values(authorized_certs))
                     .build()?;
