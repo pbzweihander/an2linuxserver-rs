@@ -8,10 +8,6 @@ mod tls;
 mod utils;
 
 fn main() -> Result<()> {
-    simple_logger::SimpleLogger::new()
-        .with_level(log::LevelFilter::Info)
-        .init()?;
-
     // parse command-line arguments
     let opt = opt::Opt::from_args();
     let config_manager = config::ConfigManager::new();
@@ -43,6 +39,10 @@ fn main() -> Result<()> {
                 tcp::pairing_tcp_handler(&config.tcp, &authorized_certs_manager, tls_config)?;
             }
             None => {
+                simple_logger::SimpleLogger::new()
+                    .with_level(log::LevelFilter::Info)
+                    .init()?;
+
                 // notification daemon mode
                 let authorized_certs = config_manager.authorized_certs_manager().load()?;
                 let tls_config = tls_info
